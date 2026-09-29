@@ -1,4 +1,4 @@
-# Nuestro Presupuesto: usarlo juntos con Supabase
+# FINANCE: usarlo juntos con Supabase
 
 GitHub Pages publicará la aplicación. Supabase guardará el historial compartido y comprobará el acceso de cada integrante. Cada persona entrará con su propio correo y contraseña; ambas verán el mismo hogar.
 
@@ -54,7 +54,7 @@ La clave publicable está diseñada para aparecer en una página web; el acceso 
 El repositorio ya existe: [AndresRsR/finanzas](https://github.com/AndresRsR/finanzas). Su carpeta local es `C:\Users\LENOVO\OneDrive\Documents\finanzas`. Los archivos de la web se publican directamente desde su raíz; no hace falta crear otro repositorio ni una carpeta de publicación adicional.
 
 1. Comprueba que el `config.js` de esa carpeta contiene los valores del paso anterior. Si también utilizas otra copia local de la aplicación, actualiza el `config.js` que está junto a su `index.html`.
-2. Sube los archivos actualizados a la raíz del repositorio, conservando la carpeta `vendor`. Deben quedar allí `index.html`, `config.js`, `.nojekyll` y los archivos de `vendor/`.
+2. Sube los archivos actualizados a la raíz del repositorio, conservando la carpeta `vendor`. Deben quedar allí `index.html`, `config.js`, `manifest.webmanifest`, `.nojekyll` y los archivos de `assets/` y `vendor/`.
 3. En el repositorio abre **Settings → Pages**. En **Build and deployment**, selecciona **Deploy from a branch**, la rama `main` y la carpeta `/(root)`. Guarda.
 4. Espera a que GitHub publique el sitio y abre el enlace que aparece en Pages. Para este repositorio, la dirección habitual es `https://andresrsr.github.io/finanzas/`; utiliza la que confirme el panel.
 5. Activa **Enforce HTTPS** cuando esté disponible. Guarda ese enlace como favorito en ambos dispositivos.
@@ -69,7 +69,7 @@ En Supabase puedes establecer la dirección HTTPS completa, incluida la subcarpe
 
 | Archivo o contenido | Dónde conservarlo |
 | --- | --- |
-| `index.html`, `config.js` con URL y clave publicable, `vendor/`, `.nojekyll` | En el repositorio y GitHub Pages. |
+| `index.html`, `config.js` con URL y clave publicable, `manifest.webmanifest`, `assets/`, `vendor/`, `.nojekyll` | En el repositorio y GitHub Pages. |
 | Esta guía y `supabase/schema.sql` sin datos personales | Pueden estar en un repositorio de código; no son necesarios para servir la página. El SQL se ejecuta en Supabase. |
 | Respaldos JSON reales, exportaciones CSV/PDF, capturas con tus cifras o correos | En una ubicación privada, fuera de la carpeta de publicación. |
 | Contraseñas, claves secretas, sesiones y tokens de acceso | En privado; nunca en GitHub ni en archivos de la web. |
@@ -108,3 +108,10 @@ Importar una copia o reiniciar los datos dentro de un hogar compartido afecta al
 - **No aparecen los datos antiguos:** vuelve al navegador y archivo originales, exporta el JSON y selecciónalo al crear el hogar. GitHub Pages no puede leer el almacenamiento de `file://`.
 - **La pareja no puede unirse:** comprueba que inició sesión con el correo al que dirigiste el código y que está usando la misma página y proyecto. Si el código ya no sirve, genera otro desde el hogar.
 - **Cambio pendiente o conflicto:** descarga el cambio, recupera la conexión y revisa los datos compartidos antes de continuar. No borres el almacenamiento del navegador para intentar resolverlo.
+
+
+## Nombre e icono en el celular
+
+La página, la pantalla de acceso y el nombre al instalarla están configurados como **FINANCE**. Publica también `manifest.webmanifest` y todos los PNG de `assets/`: el navegador utiliza esa configuración para presentar el nombre y el icono de la app ([documentación de instalación](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable)).
+
+Si un acceso anterior sigue mostrando la N o el nombre viejo, espera a que termine la publicación en GitHub Pages. Quita ese acceso directo de la pantalla de inicio y vuelve a abrir la dirección HTTPS en el navegador. En el menú, elige **Añadir a la pantalla de inicio** o **Instalar aplicación** y comprueba que indique FINANCE antes de confirmar. El texto exacto del menú depende del navegador. No borres el almacenamiento ni los datos del sitio para cambiar un icono.
