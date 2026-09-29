@@ -1,0 +1,9 @@
+# Respaldos y exportaciones privadas; no pertenecen a GitHub Pages.
+*.bak
+nuestro-presupuesto-*.json
+cambio-pendiente-*.json
+movimientos-*.csv
+.env
+.env.*
+.qa/
+node_modules/
