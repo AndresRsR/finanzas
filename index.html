@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <meta name="theme-color" content="#183e35">
 <meta name="description" content="FINANCE: finanzas, hogar y metas juntos. Una aplicación privada para organizar el dinero de tu hogar.">
 <title>FINANCE</title>
@@ -55,6 +55,187 @@ dialog{padding:0;border:1px solid var(--line);border-radius:20px;background:var(
 .cash-legend{display:grid;grid-template-columns:9px minmax(0,1fr) auto auto;column-gap:12px}.cash-legend>.actual-legend-row,.cash-legend-head{grid-column:1/-1;display:grid;grid-template-columns:subgrid;column-gap:12px}.cash-legend-head{color:var(--muted);font-size:.7rem;align-items:end;padding-bottom:7px;border-bottom:1px solid var(--line);margin-bottom:5px}.cash-legend-head>span:first-child{grid-column:1/3}.cash-legend-head>span:not(:first-child){text-align:right}.cash-legend .actual-legend-row>strong{text-align:right}.cash-half{text-align:right;border-left:1px solid var(--line);padding-left:12px;white-space:nowrap;font-variant-numeric:tabular-nums}.cash-half small{font-size:.7rem;color:var(--muted)}.cash-legend .negative,.cash-legend .negative strong{color:var(--red)}.cash-half-note{grid-column:1/-1;margin-top:12px;line-height:1.5}.cash-legend .actual-label small{font-size:.68rem}
 @media(max-width:620px){.cash-legend,.cash-legend>.actual-legend-row,.cash-legend-head{column-gap:8px}.cash-half{padding-left:8px}.cash-legend .actual-legend-row{font-size:.8rem}}
 .cloud-status{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border:1px solid var(--line);background:var(--green-soft);border-radius:12px;font-size:.82rem;margin-bottom:24px}.cloud-warning{background:var(--orange-soft);color:var(--orange)}.cloud-status span{overflow-wrap:anywhere}.cloud-gated .sidebar,.cloud-gated .topbar{display:none}.cloud-gated .workspace{margin:0}.cloud-gated .main{padding:36px 16px}.cloud-gate{max-width:540px;margin:2vh auto;padding:32px}.cloud-gate h1{margin:12px 0 20px;font-size:2rem}.cloud-form{display:grid;gap:16px}.cloud-form input[type=file]{max-width:100%;font-size:.85rem}.cloud-form .check{align-items:start}.cloud-form .form-error:empty{display:none}@media(max-width:480px){.cloud-status{align-items:flex-start;flex-direction:column}.cloud-gate{padding:24px}.cloud-gate h1{font-size:1.65rem}}@media print{.cloud-status{display:none!important}}
+/* MOBILE_CSS */
+/* Mobile-only refinements. Inlined by build.cjs; desktop and print stay unchanged. */
+.session-message{padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--green-soft);margin-bottom:18px;font-size:.9rem}
+#idle-dialog{max-width:390px}
+.idle-content{padding:26px;overflow-y:auto;min-height:0}
+.idle-content h2{margin:12px 0}
+.idle-content .btn{width:100%;margin-top:18px;min-height:44px}
+body.session-hidden .workspace,body.session-hidden .sidebar,body.session-hidden #dialog,body.session-hidden #idle-dialog,body.session-hidden .toast-region{visibility:hidden!important}
+body.session-hidden::after{content:'FINANCE';position:fixed;inset:0;z-index:100000;background:var(--bg);color:var(--ink);display:grid;place-items:center;font-size:1.7rem;font-weight:650;letter-spacing:.12em}
+@media print{#idle-dialog{display:none!important}}
+@media screen and (max-width: 900px) {
+  :root {
+    --mobile-safe-top: env(safe-area-inset-top, 0px);
+    --mobile-safe-right: env(safe-area-inset-right, 0px);
+    --mobile-safe-bottom: env(safe-area-inset-bottom, 0px);
+    --mobile-safe-left: env(safe-area-inset-left, 0px);
+  }
+
+  .topbar {
+    height: calc(70px + var(--mobile-safe-top));
+    padding-top: var(--mobile-safe-top);
+    padding-left: max(20px, var(--mobile-safe-left));
+    padding-right: max(20px, var(--mobile-safe-right));
+  }
+
+  .main {
+    padding-left: max(20px, var(--mobile-safe-left));
+    padding-right: max(20px, var(--mobile-safe-right));
+    padding-bottom: calc(30px + var(--mobile-safe-bottom));
+  }
+
+  .cloud-gated .main {
+    padding-top: calc(36px + var(--mobile-safe-top));
+    padding-left: max(16px, var(--mobile-safe-left));
+    padding-right: max(16px, var(--mobile-safe-right));
+    padding-bottom: calc(36px + var(--mobile-safe-bottom));
+  }
+
+  .sidebar {
+    padding-top: calc(30px + var(--mobile-safe-top));
+    padding-left: max(12px, var(--mobile-safe-left));
+    padding-bottom: calc(20px + var(--mobile-safe-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .toast-region {
+    right: max(18px, var(--mobile-safe-right));
+    bottom: calc(18px + var(--mobile-safe-bottom));
+    max-width: calc(100% - 36px - var(--mobile-safe-left) - var(--mobile-safe-right));
+  }
+}
+
+@media screen and (max-width: 620px) {
+  .topbar {
+    padding-left: max(13px, var(--mobile-safe-left));
+    padding-right: max(13px, var(--mobile-safe-right));
+  }
+
+  .main {
+    padding-left: max(16px, var(--mobile-safe-left));
+    padding-right: max(16px, var(--mobile-safe-right));
+  }
+
+  .btn,
+  .btn.sm,
+  .icon-btn,
+  .month-control .icon-btn,
+  .day-card .icon-btn,
+  .link-btn,
+  .period-tabs button,
+  .nav button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .icon-btn,
+  .month-control .icon-btn,
+  .day-card .icon-btn {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+
+  /* Let the selected month shrink before the header overflows a narrow screen. */
+  .top-actions,
+  .month-control {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .month-control select {
+    min-width: 0;
+    width: 0;
+    flex: 1 1 auto;
+    text-overflow: ellipsis;
+  }
+
+  input,
+  select,
+  textarea,
+  .month-control select,
+  .cloud-form input[type=file] {
+    font-size: 16px;
+  }
+
+  input:not([type=checkbox]):not([type=radio]):not([type=hidden]),
+  select,
+  textarea {
+    min-height: 44px;
+    scroll-margin-block: 16px;
+  }
+
+  /* The enclosing label supplies the hit area without enlarging the checkbox. */
+  .check,
+  details summary {
+    min-height: 44px;
+    padding-block: 10px;
+  }
+
+  .check input {
+    flex-shrink: 0;
+  }
+
+  dialog {
+    inset: calc(12px + var(--mobile-safe-top)) calc(12px + var(--mobile-safe-right)) calc(12px + var(--mobile-safe-bottom)) calc(12px + var(--mobile-safe-left));
+    width: auto;
+    max-width: 590px;
+    max-height: calc(100vh - 24px - var(--mobile-safe-top) - var(--mobile-safe-bottom));
+    max-height: calc(100dvh - 24px - var(--mobile-safe-top) - var(--mobile-safe-bottom));
+    margin: auto;
+    overflow: hidden;
+  }
+
+  dialog[open],
+  dialog > form {
+    display: flex;
+    flex-direction: column;
+  }
+
+  dialog > form {
+    width: 100%;
+    min-height: 0;
+    max-height: inherit;
+    overflow: hidden;
+  }
+
+  .modal-head,
+  .modal-actions {
+    flex: 0 0 auto;
+  }
+
+  .modal-body {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-block: 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-actions {
+    flex-wrap: wrap;
+  }
+
+  .modal-actions .btn {
+    flex: 1 1 120px;
+  }
+}
+
+@media screen and (max-width: 620px) and (max-height: 480px) {
+  .modal-head,
+  .modal-actions {
+    padding-block: 10px;
+  }
+
+  .modal-body {
+    padding-block: 12px;
+  }
+}
+/* END_MOBILE_CSS */
 </style>
 </head>
 <body>
@@ -224,7 +405,7 @@ function save(){
  catch(e){storageProblem='El navegador no permite guardar los cambios. Esta sesión sigue funcionando; exporta una copia JSON antes de salir.';showStorageWarning();return false;}
 }
 function showStorageWarning(){const el=$('#storage-alert');el.className=storageProblem?'storage-alert':'';el.textContent=storageProblem;}
-function commit(change,message){const before=clone(state);try{change();reconcileRedirects();validateFundTimeline(state);validateCashChange(before,state);if(typeof cloud!=='undefined'&&cloud.enabled){const queued=cloud.record(before,state);render();if(queued)toast('Cambio conservado; enviando al hogar…');}else{save();render();if(message)toast(message);}}catch(e){state=before;throw e;}}
+function commit(change,message){if(typeof cloud!=='undefined'&&cloud.enabled&&!idleSession.check())throw Error('La sesión terminó. Vuelve a entrar para guardar.');const before=clone(state);try{change();reconcileRedirects();validateFundTimeline(state);validateCashChange(before,state);if(typeof cloud!=='undefined'&&cloud.enabled){const queued=cloud.record(before,state);render();if(queued)toast('Cambio conservado; enviando al hogar…');}else{save();render();if(message)toast(message);}}catch(e){state=before;throw e;}}
 function ensureOpen(k=state.selectedMonth){assert(month(k),'Primero crea el mes de este movimiento.');assert(month(k).status!=='closed','Este mes está cerrado. Reábrelo desde Mes a mes antes de hacer cambios.');assert(!Object.keys(state.months).some(key=>key>k&&month(key).status==='closed'),'Hay un mes posterior cerrado. Reábrelo primero para conservar un historial coherente.');}
 function addTransaction(t){const k=t.date.slice(0,7);ensureOpen(k);state.transactions.push(t);validateFundTimeline(state);redirectFinishedGoal(k);}
 function reconcileRedirects(){
@@ -590,6 +771,68 @@ function cashPersonalCards(){const c=cashSummary();return '<div class="grid cols
 function renderCashHistory(){return heading('Nuestra vida, mes a mes.','Cerrar conserva el dinero y lo lleva al siguiente mes.',button('Crear mes','new-month','','plus'))+'<section class="card"><div class="table-scroll"><table><thead><tr><th>Mes</th><th>Estado</th><th class="right">Ingresos</th><th class="right">Gastos</th><th class="right">Saldo en cajas</th><th></th></tr></thead><tbody>'+Object.keys(state.months).sort().map(k=>{const c=cashMode(k)?cashSummary(k):null,t=month(k).closed?.totals||totals(k);return '<tr><td>'+monthName(k)+'</td><td>'+statusNames[month(k).status]+'</td><td class="right nowrap">'+money(c?c.received:t.income)+'</td><td class="right nowrap">'+money(c?c.spentTotal:t.spent)+'</td><td class="right nowrap">'+money(c?c.total:month(k).closed?.patrimony||0)+'</td><td>'+button('Abrir','select-month','secondary sm','','data-month="'+k+'"')+'</td></tr>';}).join('')+'</tbody></table></div></section><section class="card section-space"><h2>'+monthName(state.selectedMonth)+'</h2>'+cashDetailBody()+'<div class="actions section-space">'+(month().status==='closed'?button('Reabrir mes','reopen-month','secondary','lock'):button('Cerrar mes','close-month','','check'))+button('Imprimir / Guardar PDF','print','secondary','print')+'</div></section>';}
 function cashPrintReport(){$('#print-report').innerHTML=heading('Resumen de caja real','Ingresos repartidos automáticamente y gastos descontados.')+'<section class="card">'+cashDetailBody()+'</section><section class="card section-space"><h2>Saldos por destino</h2>'+Object.entries(cashSummary().balances).map(([f,v])=>detail(escapeHtml(cashLabel(f)),money(v))).join('')+'</section>';}
 
+/* Inactivity is measured by wall time, never by token refresh or sync traffic.
+ * The marker is shared by tabs in this browser; each device has its own session. */
+const idleSession={
+ timeout:5*60*1000,warning:30*1000,timer:null,project:'',key:'',identity:'',userId:'',installed:false,lastInput:0,
+ identityOf(session){try{return JSON.parse(atob(session.access_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).session_id||session.user.id;}catch{return session.user.id;}},
+ read(){try{return JSON.parse(localStorage.getItem(this.key)||'null');}catch{return null;}},
+ write(value){try{localStorage.setItem(this.key,JSON.stringify(value));return true;}catch{return false;}},
+ begin(session){this.userId=session.user.id;this.identity=this.identityOf(session);this.key='finanzas-idle:'+this.project+':'+this.userId;assert(this.write({identity:this.identity,lastActive:Date.now(),ended:false}),'El navegador no permite guardar la sesión. Libera espacio antes de entrar.');},
+ accept(session){
+  this.userId=session.user.id;this.identity=this.identityOf(session);this.key='finanzas-idle:'+this.project+':'+this.userId;
+  return this.check(true);
+ },
+ check(force=false){
+  if(!this.key||(!cloud.user&&!force))return true;
+  const mark=this.read(),now=Date.now();
+  if(!mark||mark.ended||mark.identity!==this.identity||!Number.isFinite(mark.lastActive)||mark.lastActive>now+60000||now-mark.lastActive>=this.timeout){cloud.logout(mark?.reason==='manual'?'manual':'idle');return false;}
+  this.schedule(mark.lastActive+this.timeout-now);return true;
+ },
+ activity(event){
+  if(!event.isTrusted||document.hidden||!cloud.user)return;
+  if(!this.check()){event.preventDefault();event.stopImmediatePropagation();return;}
+  // A warning only needs a deliberate button/key response, not pointer movement.
+  if($('#idle-dialog')?.open&&event.type!=='click'&&event.type!=='keydown')return;
+  if(['pointermove','touchmove'].includes(event.type)&&Date.now()-this.lastInput<1000)return;
+  this.lastInput=Date.now();
+  if(!this.write({identity:this.identity,lastActive:this.lastInput,ended:false})){cloud.logout('idle');event.preventDefault();event.stopImmediatePropagation();return;}
+  this.hideWarning();this.schedule(this.timeout);
+ },
+ schedule(remaining){
+  clearTimeout(this.timer);
+  if(remaining<=this.warning&&!document.hidden){this.showWarning(Math.ceil(remaining/1000));this.timer=setTimeout(()=>this.check(),Math.min(1000,remaining));}
+  else{this.hideWarning();this.timer=setTimeout(()=>this.check(),Math.max(1,remaining>this.warning?remaining-this.warning:remaining));}
+ },
+ showWarning(seconds){
+  let dialog=$('#idle-dialog');
+  if(!dialog){dialog=document.createElement('dialog');dialog.id='idle-dialog';dialog.setAttribute('aria-labelledby','idle-title');dialog.innerHTML='<div class="idle-content"><span class="eyebrow">FINANCE · SESIÓN</span><h2 id="idle-title">¿Sigues aquí?</h2><p>La sesión se cerrará en <strong id="idle-seconds"></strong> segundos por inactividad.</p><p class="field-note">Continúa para guardar lo que estés escribiendo.</p><button class="btn" type="button" id="idle-continue">Seguir usando FINANCE</button></div>';document.body.appendChild(dialog);dialog.addEventListener('cancel',e=>{e.preventDefault();this.activity(e);});}
+  $('#idle-seconds').textContent=String(seconds);if(!dialog.open)dialog.showModal();
+ },
+ hideWarning(){const dialog=$('#idle-dialog');if(dialog?.open)dialog.close();},
+ end(reason){const mark=this.read();if(this.key&&(!mark||mark.identity===this.identity))this.write({identity:this.identity,lastActive:0,ended:true,reason});clearTimeout(this.timer);this.hideWarning();this.key='';this.identity='';this.userId='';},
+ init(project){
+  this.project=project;if(this.installed)return;this.installed=true;
+  for(const type of ['pointerdown','pointermove','keydown','wheel','touchstart','touchmove','input','click'])document.addEventListener(type,e=>this.activity(e),{capture:true,passive:false});
+  window.addEventListener('storage',e=>{if(e.key===this.key&&cloud.user)this.check();});
+  const resume=()=>{this.check();document.body.classList.toggle('session-hidden',document.hidden&&Boolean(cloud.user));};
+  document.addEventListener('visibilitychange',resume);window.addEventListener('focus',()=>this.check());window.addEventListener('pageshow',resume);
+  window.addEventListener('pagehide',()=>{if(cloud.user)document.body.classList.add('session-hidden');});
+ }
+};
+/* A retired SDK client may finish logout or refresh after a new login. Its
+ * storage is detached so it can neither restore nor erase the new session. */
+function sessionStorageAdapter(key){
+ let active=true;const keys=[key,key+'-code-verifier',key+'-user'];
+ return{
+  getItem(name){return active?localStorage.getItem(name):null;},
+  setItem(name,value){if(active)localStorage.setItem(name,value);},
+  removeItem(name){if(active)localStorage.removeItem(name);},
+  detach(clear=true){if(!active)return;active=false;if(clear)for(const name of keys){try{localStorage.removeItem(name);}catch{}}},
+  retire(){}
+ };
+}
+
 /* Shared household persistence. One durable operation at a time, compare-and-swap
  * on the server, no last-write-wins. Local financial data is never auto-uploaded. */
 const cloud = {
@@ -597,6 +840,7 @@ const cloud = {
  client:null,user:null,household:null,members:[],pending:null,busy:false,reading:false,
  gated:true,phase:'loading',error:'',dirty:false,epoch:0,writer:false,release:null,
  notice:'',key:'',prefsKey:'',project:'',local:null,deferred:null,
+ authStorage:null,authSubscription:null,authenticating:null,authSession:null,loginMessage:'',switching:false,inviteTimer:null,movedHousehold:null,priorPendingCount:0,
  wire(value){const s=clone(value);s.selectedMonth=Object.keys(s.months).sort()[0];s.settings.theme='light';s.updatedAt=null;return s;},
  same(a,b){return JSON.stringify(this.wire(a))===JSON.stringify(this.wire(b));},
  prefs(){try{localStorage.setItem(this.prefsKey,JSON.stringify({month:state.selectedMonth,theme:state.settings.theme}));}catch{}},
@@ -609,22 +853,24 @@ const cloud = {
   assert(this.writer,'Esta app está abierta en otra pestaña. Cierra esa pestaña y vuelve a cargar esta para editar.');
   assert(!this.pending,'Hay un cambio pendiente. Sincronízalo o revísalo antes de registrar otro.');
   assert(!this.deferred,'Llegaron datos actualizados. Cierra el formulario y espera unos segundos antes de volver a editar.');
+  assert(!this.switching,'Espera a que termine el cambio de hogar.');
   validateState(after);
   const pending={household:this.household.id,revision:this.household.revision,mutation:crypto.randomUUID(),state:this.wire(after),createdAt:new Date().toISOString()};
   try{localStorage.setItem(this.key,JSON.stringify(pending));}catch{throw Error('No se pudo conservar el cambio en este dispositivo. Libera espacio antes de guardar.');}
   this.pending=pending;this.prefs();this.notice='Cambio guardado en este dispositivo; pendiente de sincronizar.';
   setTimeout(()=>this.flush(),0);return true;
  },
- async rpc(name,args={}){let request=this.client.rpc(name,args);if(globalThis.AbortSignal?.timeout)request=request.abortSignal(AbortSignal.timeout(15000));const {data,error}=await request;if(error){const message=error.message||'';throw Error(/fetch|network|abort|timeout/i.test(message)?'No se pudo conectar. Revisa internet y vuelve a intentar.':message||'No se pudo conectar con el hogar.');}return data;},
- status(){if(!this.enabled)return 'Solo en este dispositivo · nube sin configurar';if(this.gated)return 'Acceso al hogar';if(this.pending?.conflict)return 'Hay cambios que revisar';if(this.pending)return this.busy?'Guardando en el hogar…':'Cambio pendiente de sincronizar';if(!this.writer)return 'Otra pestaña tiene la edición abierta';return this.notice||'Hogar compartido · sincronizado';},
- banner(){return '<div class="cloud-status '+(this.pending?'cloud-warning':'')+'"><span role="status">'+escapeHtml(this.status())+'</span><button class="btn secondary sm" data-cloud="account">'+(this.enabled?'Mi hogar':'Conectar dispositivos')+'</button></div>';},
+ async rpc(name,args={}){let request=this.client.rpc(name,args);if(globalThis.AbortSignal?.timeout)request=request.abortSignal(AbortSignal.timeout(15000));const {data,error}=await request;if(error){if(error.code==='PGRST202'&&['finance_join_existing','finance_archives'].includes(name))throw Error('Falta actualizar Supabase. Ejecuta de nuevo el archivo supabase/schema.sql en SQL Editor y vuelve a intentar.');const message=error.message||'';throw Object.assign(Error(/fetch|network|abort|timeout/i.test(message)?'No se pudo conectar. Revisa internet y vuelve a intentar.':message||'No se pudo conectar con el hogar.'),{code:error.code});}return data;},
+ status(){if(!this.enabled)return 'Solo en este dispositivo · nube sin configurar';if(this.gated)return 'Acceso al hogar';if(this.movedHousehold)return 'Tu cuenta cambió de hogar. Cierra el formulario para abrirlo; el cambio pendiente se conserva.';if(this.pending?.conflict)return 'Hay cambios que revisar';if(this.pending)return this.busy?'Guardando en el hogar…':'Cambio pendiente de sincronizar';if(this.priorPendingCount)return 'Hay una copia pendiente del hogar anterior · Revísala en Mi hogar';if(!this.writer)return 'Otra pestaña tiene la edición abierta';return this.notice||'Hogar compartido · sincronizado';},
+ banner(){return '<div class="cloud-status '+(this.pending||this.priorPendingCount?'cloud-warning':'')+'"><span role="status">'+escapeHtml(this.status())+'</span><button class="btn secondary sm" data-cloud="account">'+(this.enabled?'Mi hogar':'Conectar dispositivos')+'</button></div>';},
  paint(){const el=$('#cloud-status');if(el)el.innerHTML=this.banner();},
  async flush(){
+  if(!idleSession.check())return;
   if(!this.pending||this.pending.conflict||this.busy||!this.writer||this.gated)return;
   const op=this.pending,epoch=this.epoch;this.busy=true;this.paint();
   try{
    const data=await this.rpc('finance_save',{p_household:op.household,p_expected_revision:op.revision,p_state:op.state,p_mutation:op.mutation});
-   if(epoch!==this.epoch)return;
+   if(epoch!==this.epoch||!idleSession.check())return;
    assert(data?.household&&['saved','replayed','conflict'].includes(data.status),'La respuesta del servidor no es válida.');
    validateState(data.household.state);
    if(data.status==='conflict'){
@@ -636,23 +882,41 @@ const cloud = {
     if(!this.editing()){this.household=data.household;state=this.restore(data.household.state);state.updatedAt=data.household.updated_at;render();}else{this.deferred=data.household;this.notice='Guardado. Cierra el formulario para cargar los datos actualizados.';}
     toast('Cambio guardado en el hogar compartido.');
    }
-  }catch(e){if(epoch===this.epoch){if(this.notice!==e.message)toast('El cambio sigue pendiente: '+e.message,true);this.notice=e.message;}}
+  }catch(e){if(epoch===this.epoch){
+   // A different device can move this account while this device is offline.
+   // Keep its old outbox intact and make it downloadable in the new household.
+   if(e.code==='42501')try{const data=await this.rpc('finance_bootstrap');if(epoch!==this.epoch||!idleSession.check())return;if(data.household?.id&&data.household.id!==op.household){validateState(data.household.state);if(this.editing())this.movedHousehold=data;else await this.adoptHousehold(data);return;}}catch{}
+   if(epoch!==this.epoch)return;if(this.notice!==e.message)toast('El cambio sigue pendiente: '+e.message,true);this.notice=e.message;
+  }}
   finally{if(epoch===this.epoch){this.busy=false;this.paint();}}
  },
  editing(){return Boolean($('#dialog')?.open||this.dirty||document.activeElement?.closest('#main form'));},
  async poll(){
-  if(!this.enabled||!this.user||this.gated||document.hidden||this.reading||this.busy)return;
-  if(this.pending){if(!this.pending.conflict)await this.flush();return;}
+  if(!idleSession.check())return;
+  if(!this.enabled||!this.user||this.gated||document.hidden||this.reading||this.busy||this.switching)return;
+  if(this.movedHousehold){if(!this.editing())await this.adoptHousehold(this.movedHousehold);return;}
+  if(this.pending&&!this.pending.conflict){await this.flush();return;}
   if(this.editing())return;
   if(this.deferred){this.household=this.deferred;state=this.restore(this.deferred.state);state.updatedAt=this.deferred.updated_at;this.deferred=null;render();}
   const epoch=this.epoch;this.reading=true;
-  try{const data=await this.rpc('finance_bootstrap');if(epoch!==this.epoch||this.pending||this.editing())return;
-   assert(data.household?.id===this.household?.id,'No se pudo verificar el acceso al hogar. Vuelve a iniciar sesión.');
+  try{const data=await this.rpc('finance_bootstrap');if(epoch!==this.epoch||!idleSession.check()||(this.pending&&!this.pending.conflict)||this.editing())return;
+   assert(data.household?.id,'No se pudo verificar el acceso al hogar. Vuelve a iniciar sesión.');
+   if(data.household.id!==this.household?.id){await this.adoptHousehold(data);return;}
+   if(this.pending)return;
    this.members=data.members||[];
    if(data.household.revision!==this.household.revision){validateState(data.household.state);this.household=data.household;this.members=data.members||[];state=this.restore(data.household.state);state.updatedAt=data.household.updated_at;render();}
    this.notice='Hogar compartido · sincronizado';this.paint();
   }catch(e){if(epoch===this.epoch){this.notice='Sin conexión confirmada · '+e.message;this.paint();}}
   finally{if(epoch===this.epoch)this.reading=false;}
+ },
+ async adoptHousehold(data){
+  validateState(data.household.state);++this.epoch;this.busy=false;this.reading=false;this.deferred=null;this.movedHousehold=null;simulator=null;transactionFilters={month:'current',type:'',category:'',person:''};page='home';
+  await this.attach(data);if(!this.gated)toast(this.priorPendingCount?'Ya abrimos el hogar compartido. Revisa la copia pendiente anterior en Mi hogar.':'Se abrió el hogar al que te uniste desde otra sesión.');
+ },
+ previousPending(){
+  if(!this.user)return [];const prefix='finanzas-pending:'+this.project+':'+this.user.id+':',items=[];
+  for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(!key?.startsWith(prefix)||key===this.key)continue;try{const op=JSON.parse(localStorage.getItem(key));if(key!==prefix+op.household||!op.state)continue;validateState(op.state);items.push({key,...op});}catch{}}
+  return items;
  },
  async lock(epoch){
   this.writer=false;
@@ -663,22 +927,47 @@ const cloud = {
   }).catch(()=>resolve());});
  },
  async attach(data){
+  if(!idleSession.check())return;
   assert(data.household?.state,'No se recibió el hogar.');validateState(data.household.state);
   const epoch=this.epoch;this.household=data.household;this.members=data.members||[];
   this.key='finanzas-pending:'+this.project+':'+this.user.id+':'+data.household.id;
   this.prefsKey='finanzas-prefs:'+this.project+':'+this.user.id;
-  this.release?.();this.release=null;await this.lock(epoch);if(epoch!==this.epoch)return;
+  this.release?.();this.release=null;await this.lock(epoch);if(epoch!==this.epoch||!idleSession.check())return;
   const raw=localStorage.getItem(this.key);this.pending=null;
   if(raw&&this.writer){const p=JSON.parse(raw);assert(p.household===data.household.id&&typeof p.mutation==='string'&&Number.isSafeInteger(p.revision),'El cambio pendiente no es válido. Conserva una copia del navegador antes de continuar.');validateState(p.state);this.pending=p;}
+  this.priorPendingCount=this.previousPending().length;
   state=this.restore(this.pending?.state||data.household.state);state.updatedAt=data.household.updated_at;storageProblem='';this.gated=false;this.phase='ready';this.notice='';render();if(this.pending&&!this.pending.conflict)this.flush();
  },
  async session(session){
-  const user=session?.user||null;if(user?.id===this.user?.id&&['login','onboarding','ready'].includes(this.phase))return;
-  const epoch=++this.epoch;this.release?.();this.release=null;this.writer=false;this.user=user;this.household=null;this.pending=null;this.deferred=null;this.busy=false;this.reading=false;this.gated=true;this.phase=user?'loading':'login';this.error='';
+  const user=session?.user||null;
+  if(user&&!idleSession.accept(session))return;
+  if(user)this.authSession=session;
+  if(!user&&this.user){this.logout('manual');return;}
+  if(user?.id===this.user?.id&&['login','onboarding','ready'].includes(this.phase))return;
+  const epoch=++this.epoch;this.release?.();this.release=null;this.writer=false;this.user=user;this.household=null;this.pending=null;this.deferred=null;this.movedHousehold=null;this.priorPendingCount=0;this.busy=false;this.reading=false;this.gated=true;this.phase=user?'loading':'login';this.error='';
   if($('#dialog').open)closeModal();state=initialState();$('#print-report').innerHTML='';render();
   if(!user)return;
-  try{const data=await this.rpc('finance_bootstrap');if(epoch!==this.epoch)return;if(data.household)await this.attach(data);else{this.phase='onboarding';render();}}
+  try{const data=await this.rpc('finance_bootstrap');if(epoch!==this.epoch||!idleSession.check())return;if(data.household)await this.attach(data);else{this.phase='onboarding';render();}}
   catch(e){if(epoch===this.epoch){this.phase='error';this.error=e.message;render();}}
+ },
+ connect(){
+  const config=window.FINANZAS_CLOUD;this.authSubscription?.unsubscribe();
+  this.authStorage=sessionStorageAdapter('finanzas-auth:'+this.project);
+  const client=window.supabase.createClient(config.url,config.publishableKey,{auth:{storageKey:'finanzas-auth:'+this.project,storage:this.authStorage,detectSessionInUrl:false}});this.client=client;
+  const subscription=client.auth.onAuthStateChange((event,session)=>{setTimeout(()=>{
+   if(this.client!==client||this.authenticating===client)return;
+   // A retired SDK can finish refreshing its previous token in another tab.
+   // Broadcast notifications must never replace an explicitly newer session.
+   if(session){
+    let marker;try{marker=JSON.parse(localStorage.getItem('finanzas-idle:'+this.project+':'+session.user.id)||'null');}catch{}
+    if(marker?.identity!==idleSession.identityOf(session)||marker?.ended)return;
+   }
+   if(event==='SIGNED_OUT'){
+    let current,marker;try{current=JSON.parse(this.authStorage.getItem('finanzas-auth:'+this.project)||'null');if(current?.user)marker=JSON.parse(localStorage.getItem('finanzas-idle:'+this.project+':'+current.user.id)||'null');}catch{}
+    if(current?.access_token&&marker&&!marker.ended&&marker.identity===idleSession.identityOf(current))return;
+   }
+   this.session(session);
+  },0);});this.authSubscription=subscription.data.subscription;
  },
  async start(){
   if(!this.enabled){this.gated=false;return;}
@@ -688,9 +977,8 @@ const cloud = {
    assert(url.protocol==='https:'&&/^[a-z0-9-]+\.supabase\.co$/.test(url.hostname),'Configura una URL HTTPS válida de tu proyecto Supabase en config.js.');
    assert(typeof config.publishableKey==='string'&&config.publishableKey.startsWith('sb_publishable_'),'Usa la clave pública que empieza por sb_publishable_ en config.js. Nunca una clave secret o service_role.');
    assert(window.supabase?.createClient,'Falta el archivo vendor de Supabase. Copia también la carpeta vendor.');
-   this.project=url.hostname;this.client=window.supabase.createClient(url.origin,config.publishableKey,{auth:{storageKey:'finanzas-auth:'+this.project,detectSessionInUrl:false}});
-   this.client.auth.onAuthStateChange((event,session)=>{setTimeout(()=>this.session(session),0);});
-   const {data,error}=await this.client.auth.getSession();if(error)throw error;await this.session(data.session);
+   this.project=url.hostname;idleSession.init(this.project);this.connect();
+   const client=this.client,{data,error}=await client.auth.getSession();if(error)throw error;if(this.client===client)await this.session(data.session);
    setInterval(()=>this.poll(),5000);window.addEventListener('online',()=>this.poll());window.addEventListener('focus',()=>this.poll());
    document.addEventListener('visibilitychange',()=>{if(!document.hidden)this.poll();});
   }catch(e){this.phase='error';this.error=e.message;render();}
@@ -700,42 +988,96 @@ const cloud = {
   let body='';
   if(this.phase==='loading')body='<p role="status">Conectando con tu hogar…</p>';
   if(this.phase==='error')body='<p class="negative" role="alert">'+escapeHtml(this.error)+'</p><p class="field-note">Revisa la configuración y la conexión. Tus datos locales se conservan.</p><button class="btn section-space" data-cloud="reload">Volver a intentar</button>';
-  if(this.phase==='login')body='<p class="muted">Entren con sus propios correos para ver las mismas cajas y movimientos.</p><form id="cloud-login" class="section-space cloud-form"><label>Correo<input type="email" name="email" autocomplete="username" required></label><label>Contraseña<input type="password" name="password" autocomplete="current-password" required></label><div class="form-error" role="alert"></div><button class="btn" type="submit">Entrar a mi hogar</button></form><p class="field-note">Las dos cuentas se crean en Supabase durante la configuración. Si olvidaste tu contraseña, el administrador del proyecto debe restablecerla.</p>';
-  if(this.phase==='onboarding')body='<p class="muted">Conecta este correo con el hogar que compartirán.</p><section class="section-space"><h2>Si eres el primero en entrar</h2><p class="field-note">Elige una copia JSON exportada desde la app anterior. Sin archivo, se usarán los datos originales de este navegador ('+(this.local?.transactions.length||0)+' movimientos). Nada se sube hasta confirmar.</p><form id="cloud-create" class="cloud-form section-space"><label>Nombre del hogar<input name="name" maxlength="80" value="'+escapeHtml(this.local?.settings.couple||'Nuestro hogar')+'" required></label><label>Copia de seguridad (opcional)<input name="backup" type="file" accept=".json,application/json"></label><label class="check"><input type="checkbox" required>Confirmo que esta es la copia que quiero compartir.</label><div class="form-error" role="alert"></div><button class="btn" type="submit">Crear hogar con esta copia</button></form></section><div class="divider"></div><h2>Si tu pareja ya creó el hogar</h2><form id="cloud-join" class="cloud-form section-space"><label>Código de invitación<input name="token" autocomplete="off" maxlength="128" required></label><div class="form-error" role="alert"></div><button class="btn secondary" type="submit">Unirme al hogar</button></form>';
+  if(this.phase==='login')body=(this.loginMessage?'<p class="session-message" role="status">'+escapeHtml(this.loginMessage)+'</p>':'')+'<p class="muted">Entren con sus propios correos para ver las mismas cajas y movimientos.</p><form id="cloud-login" class="section-space cloud-form"><label>Correo<input type="email" name="email" inputmode="email" autocapitalize="none" spellcheck="false" autocomplete="username" required></label><label>Contraseña<input type="password" name="password" autocomplete="current-password" required></label><div class="form-error" role="alert"></div><button class="btn" type="submit">Entrar a mi hogar</button></form><p class="field-note">La sesión se cierra tras 5 minutos de inactividad. Si olvidaste tu contraseña, el administrador del proyecto debe restablecerla.</p>';
+  if(this.phase==='onboarding')body=this.onboarding();
   $('#main').innerHTML='<div class="cloud-gate card"><span class="eyebrow">FINANCE</span><h1>Un hogar, en los dos celulares.</h1>'+body+(this.user?'<button class="link-btn section-space" data-cloud="logout">Cerrar sesión</button>':'')+'</div>';
+ },
+ onboarding(){
+  return '<p class="muted">Si tu pareja ya creó el hogar, únete con su código para ver las mismas cuentas.</p><h2 class="section-space">Tengo una invitación</h2><form id="cloud-join" class="cloud-form section-space"><label>Código de invitación<input name="token" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="160" required></label><div class="form-error" role="alert"></div><button class="btn" type="submit">Unirme al hogar</button></form><div class="divider"></div><h2>Somos nuevos: crear nuestro hogar</h2><p class="field-note">Solo uno de los dos necesita crearlo. Elige una copia JSON exportada desde la app anterior. Sin archivo se usarán los datos originales de este navegador ('+(this.local?.transactions.length||0)+' movimientos).</p><form id="cloud-create" class="cloud-form section-space"><label>Nombre del hogar<input name="name" maxlength="80" value="'+escapeHtml(this.local?.settings.couple||'Nuestro hogar')+'" required></label><label>Copia de seguridad (opcional)<input name="backup" type="file" accept=".json,application/json"></label><label class="check"><input type="checkbox" required>Mi pareja todavía no creó el hogar y esta es la copia que quiero compartir.</label><div class="form-error" role="alert"></div><button class="btn secondary" type="submit">Crear hogar con esta copia</button></form>';
  },
  account(){
   if(!this.enabled){openModal('Conectar los dos dispositivos','<p>La app está preparada para Supabase. Completa <strong>config.js</strong> con la URL y la clave pública de tu proyecto, ejecuta <strong>supabase/schema.sql</strong> y crea las dos cuentas siguiendo <strong>LEEME-SUPABASE.md</strong>.</p><p class="field-note">Por ahora, los cambios solo se guardan en este navegador. Exporta una copia JSON antes de pasar a GitHub Pages.</p>','Entendido',()=>{});return;}
   const pending=this.pending;
-  openModal('Mi hogar compartido','<p><strong>'+escapeHtml(this.household?.name||'Nuestro hogar')+'</strong></p><p class="field-note">'+escapeHtml(this.user.email)+' · '+escapeHtml(this.status())+'</p><div class="section-space">'+this.members.map(m=>'<p>'+escapeHtml(m.email)+' · '+(m.role==='owner'?'Administrador':'Integrante')+'</p>').join('')+'</div><div class="actions section-space">'+(this.members.some(m=>m.email===this.user.email&&m.role==='owner')?'<button class="btn secondary" type="button" data-cloud="invite">Invitar a mi pareja</button>':'')+'<button class="btn secondary" type="button" data-cloud="logout">Cerrar sesión</button></div>'+(pending?'<div class="divider"></div><p>Hay un cambio conservado en este dispositivo. '+(pending.conflict?'La versión compartida avanzó; revisa la copia antes de volver a registrar tu cambio.':'Puedes reintentar el envío sin duplicarlo.')+'</p><div class="actions section-space"><button class="btn secondary" type="button" data-cloud="download">Descargar cambio pendiente</button>'+(pending.conflict?'<button class="btn" type="button" data-cloud="resolve">Revisar datos compartidos</button>':'<button class="btn" type="button" data-cloud="retry">Reintentar sincronización</button>')+'</div>':'')+'<p class="field-note">Los cambios llegan en unos segundos. Un formulario abierto conserva lo que estás escribiendo.</p>','Cerrar',()=>{});
+  openModal('Mi hogar compartido','<p><strong>'+escapeHtml(this.household?.name||'Nuestro hogar')+'</strong></p><p class="field-note">'+escapeHtml(this.user.email)+' · '+escapeHtml(this.status())+'</p><div class="section-space">'+this.members.map(m=>'<p>'+escapeHtml(m.email)+' · '+(m.role==='owner'?'Administrador':'Integrante')+'</p>').join('')+'</div><div class="actions section-space">'+(this.members.some(m=>m.email===this.user.email&&m.role==='owner')?'<button class="btn secondary" type="button" data-cloud="invite">Invitar a mi pareja</button>':'')+'<button class="btn secondary" type="button" data-cloud="join-existing">Unirme al hogar de mi pareja</button><button class="btn secondary" type="button" data-cloud="archives">Respaldos de hogares anteriores</button><button class="btn secondary" type="button" data-cloud="logout">Cerrar sesión</button></div>'+(pending?'<div class="divider"></div><p>Hay un cambio conservado en este dispositivo. '+(pending.conflict?'La versión compartida avanzó; revisa la copia antes de volver a registrar tu cambio.':'Puedes reintentar el envío sin duplicarlo.')+'</p><div class="actions section-space"><button class="btn secondary" type="button" data-cloud="download">Descargar cambio pendiente</button>'+(pending.conflict?'<button class="btn" type="button" data-cloud="resolve">Revisar datos compartidos</button>':'<button class="btn" type="button" data-cloud="retry">Reintentar sincronización</button>')+'</div>':'')+'<p class="field-note">Los cambios llegan en unos segundos. Un formulario abierto conserva lo que estás escribiendo.</p>','Cerrar',()=>{});
  },
  download(){assert(this.pending,'No hay un cambio pendiente.');download(JSON.stringify(this.pending.state,null,2),'cambio-pendiente-'+today()+'.json','application/json');},
  async resolve(){
   assert(this.pending?.conflict&&!this.busy,'Primero espera la respuesta del servidor.');
   confirmModal('Conservar copia y abrir los datos compartidos','Se descargará tu cambio pendiente como respaldo y se abrirá la versión guardada del hogar. Revisa esa copia y vuelve a registrar únicamente lo que falte. No se combinarán ni duplicarán movimientos automáticamente.',async()=>{
-   const epoch=this.epoch,data=await this.rpc('finance_bootstrap');if(epoch!==this.epoch)return false;assert(data.household?.id===this.household.id,'No se pudo verificar el hogar.');validateState(data.household.state);
+   const epoch=this.epoch,data=await this.rpc('finance_bootstrap');if(epoch!==this.epoch||!idleSession.check())return false;assert(data.household?.id===this.household.id,'No se pudo verificar el hogar.');validateState(data.household.state);
    // Keep a durable recovery copy even if the browser blocks the download.
    localStorage.setItem(this.key+':recovery:'+this.pending.mutation,JSON.stringify(this.pending));this.download();localStorage.removeItem(this.key);this.pending=null;this.household=data.household;state=this.restore(data.household.state);state.updatedAt=data.household.updated_at;this.notice='Copia pendiente conservada. Revisa y registra lo que falte.';render();
   },'Descargar copia y abrir hogar');
  },
- invite(){openModal('Invitar a mi pareja','<p>El código solo servirá para el correo confirmado de tu pareja. El hogar admite dos personas.</p><label class="section-space">Correo de tu pareja<input name="email" type="email" required></label>','Generar código',async(fd,form)=>{
-  const epoch=this.epoch,data=await this.rpc('finance_invite',{p_household:this.household.id,p_email:String(fd.get('email')).trim()});if(epoch!==this.epoch)return false;
-  $('.modal-body',form).innerHTML='<p>Comparte este código con tu pareja. Debe entrar con el correo indicado y elegir “Unirme al hogar”.</p><label class="section-space">Código<input readonly value="'+escapeHtml(data.token)+'" aria-label="Código de invitación"></label><p class="field-note">Vence: '+escapeHtml(new Date(data.expires_at).toLocaleString('es-EC'))+'</p><div class="form-error" role="alert"></div>';form.querySelector('[type=submit]').hidden=true;return false;
- });},
- async logout(){const epoch=++this.epoch;this.release?.();this.release=null;this.writer=false;this.user=null;this.household=null;this.pending=null;this.busy=false;this.reading=false;this.gated=true;this.phase='loading';if($('#dialog').open)closeModal();state=initialState();$('#print-report').innerHTML='';render();const{error}=await this.client.auth.signOut({scope:'local'});if(epoch!==this.epoch)return;this.phase=error?'error':'login';this.error=error?'No se pudo cerrar la sesión: '+error.message:'';render();}
+ inviteKey(){return 'finanzas-invite:'+this.project+':'+this.user.id+':'+this.household.id;},
+ invite(fresh=false){
+  if(!fresh){try{const saved=JSON.parse(localStorage.getItem(this.inviteKey())||'null');if(saved?.deadline>Date.now()&&/^[0-9a-f]{64}$/.test(saved.token)){this.showInvitation(saved);return;}}catch{}}
+  openModal('Invitar a mi pareja','<p>El código sirve para el correo confirmado de tu pareja y dura 10 minutos. El hogar admite dos personas.</p><label class="section-space">Correo de tu pareja<input name="email" type="email" inputmode="email" autocapitalize="none" spellcheck="false" required></label>','Generar código',async(fd,form)=>{
+   const epoch=this.epoch,email=String(fd.get('email')).trim(),data=await this.rpc('finance_invite',{p_household:this.household.id,p_email:email});if(epoch!==this.epoch||!idleSession.check())return false;
+   const remaining=new Date(data.expires_at).getTime()-(data.server_now?new Date(data.server_now).getTime():Date.now());
+   const invite={token:data.token,email,expires_at:data.expires_at,deadline:Date.now()+remaining};
+   try{localStorage.setItem(this.inviteKey(),JSON.stringify(invite));}catch{}
+   if(form.isConnected&&$('#dialog').open)this.showInvitation(invite);return false;
+  });
+ },
+ showInvitation(invite){
+  openModal('Invitación para tu pareja','<p>Para <strong>'+escapeHtml(invite.email)+'</strong>. En su celular, debe abrir <strong>Mi hogar → Unirme al hogar de mi pareja</strong> y pegar este código. Si todavía no tiene hogar, puede usar <strong>Unirme al hogar</strong> al iniciar sesión.</p><label class="section-space">Código<input id="invitation-code" readonly value="'+escapeHtml(invite.token)+'" aria-label="Código de invitación" autocomplete="off" spellcheck="false"></label><p id="invitation-time" class="field-note" aria-live="off"></p><div class="actions section-space"><button type="button" class="btn" data-cloud="copy-invite">Copiar código</button><button type="button" class="btn secondary" data-cloud="new-invite">Generar otro código</button></div><p class="field-note">Cerrar esta ventana o tu sesión no anula el código. Cada código del mismo correo conserva su vencimiento; invitar a un correo diferente anula los anteriores.</p>','Cerrar',()=>{});
+  clearInterval(this.inviteTimer);const tick=()=>{const label=$('#invitation-time');if(!label||!$('#dialog').open){clearInterval(this.inviteTimer);return;}const seconds=Math.max(0,Math.ceil((invite.deadline-Date.now())/1000));label.textContent=seconds?'Válido por '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+' · vence a las '+new Date(invite.expires_at).toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'}):'El código caducó. Genera otro para continuar.';$('[data-cloud="copy-invite"]').disabled=!seconds;};tick();this.inviteTimer=setInterval(tick,1000);
+ },
+ async copyInvitation(){const input=$('#invitation-code');if(!input)return;try{await navigator.clipboard.writeText(input.value);toast('Código copiado. Compártelo con tu pareja.');}catch{input.focus();input.select();toast('Código seleccionado. Mantén presionado y elige Copiar.');}},
+ joinExisting(){
+  assert(this.writer,'Abre el hogar en la pestaña donde tienes la edición.');
+  assert(!this.pending&&!this.busy&&!this.deferred&&!this.switching,'Primero sincroniza o revisa los cambios pendientes.');
+  assert(this.members.length===1&&this.members[0].role==='owner','Este hogar ya está compartido. El cambio directo solo está disponible cuando eres su único integrante.');
+  const current=this.household,epoch=this.epoch;
+  openModal('Unirme al hogar de mi pareja','<p>Ahora estás en <strong>'+escapeHtml(current.name)+'</strong>. Al unirte verás las cuentas de tu pareja. Tu hogar actual quedará como respaldo privado, sin mezclar sus movimientos.</p><label class="section-space">Código de invitación<input name="token" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="160" required></label><label class="check section-space"><input type="checkbox" name="confirmJoin" required>Quiero unirme al hogar de mi pareja y conservar el mío como respaldo.</label>','Guardar copia y unirme',async(fd)=>{
+   assert(epoch===this.epoch&&idleSession.check(),'La sesión cambió. Vuelve a abrir la invitación.');
+   assert(!this.pending&&!this.busy&&!this.deferred&&!this.switching,'Primero termina de sincronizar los cambios.');
+   const token=String(fd.get('token')).replace(/\s+/g,'').toLowerCase();assert(/^[0-9a-f]{64}$/.test(token),'Pega el código completo de la invitación.');
+   const backup=this.restore(current.state),raw=JSON.stringify(backup,null,2);
+   localStorage.setItem('finanzas-before-join:'+this.project+':'+this.user.id+':'+current.id+':'+current.revision,raw);
+   download(raw,'nuestro-presupuesto-antes-de-unirme-'+today()+'.json','application/json');
+   this.switching=true;let activeEpoch=epoch;
+   try{const data=await this.rpc('finance_join_existing',{p_token:token,p_current_household:current.id,p_expected_revision:current.revision});if(epoch!==this.epoch||!idleSession.check())return false;activeEpoch=++this.epoch;if($('#dialog').open)closeModal();$('#dialog').innerHTML='';simulator=null;transactionFilters={month:'current',type:'',category:'',person:''};page='home';await this.attach(data);if(!this.gated)toast('Ya compartes el hogar con tu pareja. Tu hogar anterior quedó respaldado.');}
+   finally{if(activeEpoch===this.epoch)this.switching=false;}
+  });
+ },
+ async archives(){
+  const epoch=this.epoch,sourceForm=$('#modal-form'),localCopies=this.previousPending();let data,error='';
+  try{data=await this.rpc('finance_archives');}catch(e){if(!localCopies.length)throw e;error=e.message;}
+  if(epoch!==this.epoch||!idleSession.check()||sourceForm!==$('#modal-form')||!$('#dialog').open)return;
+  const archives=Array.isArray(data?.archives)?data.archives:[];
+  openModal('Respaldos de hogares anteriores','<p>Estas copias son privadas para tu cuenta. No se suman al dinero del hogar que compartes ahora.</p>'+(localCopies.length?'<div class="session-message"><strong>Cambios pendientes del hogar anterior</strong><p>Estos cambios quedaron en este dispositivo y no se enviaron al hogar nuevo. Descarga la copia, revísala y registra únicamente lo que falte. No importes todo el respaldo para combinarlos.</p>'+localCopies.map((item,i)=>'<button type="button" class="btn secondary section-space" data-previous-pending="'+i+'">Descargar cambio pendiente '+(i+1)+'</button>').join('')+'</div>':'')+(error?'<p class="field-note">'+escapeHtml(error)+'</p>':'')+(archives.length?archives.map((item,i)=>'<div class="section-space"><strong>'+escapeHtml(item.name)+'</strong><p class="field-note">Guardado el '+escapeHtml(new Date(item.archived_at).toLocaleString('es-EC'))+'</p><button type="button" class="btn secondary" data-archive="'+i+'">Descargar copia JSON</button></div>').join(''):!error?'<p class="field-note">Todavía no tienes hogares anteriores guardados en Supabase.</p>':''),'Cerrar',()=>{});
+  $$('[data-archive]',$('#dialog')).forEach(button=>button.addEventListener('click',()=>{const item=archives[Number(button.dataset.archive)];validateState(item.state);download(JSON.stringify(item.state,null,2),'nuestro-presupuesto-hogar-anterior-'+today()+'.json','application/json');}));
+  $$('[data-previous-pending]',$('#dialog')).forEach(button=>button.addEventListener('click',()=>{const item=localCopies[Number(button.dataset.previousPending)];download(JSON.stringify(item.state,null,2),'cambio-pendiente-anterior-'+today()+'.json','application/json');}));
+ },
+ logout(reason='manual'){
+  const client=this.client,storage=this.authStorage,closingIdentity=idleSession.identity;let token,ownsStoredSession=true;
+  try{const stored=JSON.parse(storage?.getItem('finanzas-auth:'+this.project)||'null');ownsStoredSession=!stored||idleSession.identityOf(stored)===closingIdentity;if(ownsStoredSession)token=stored?.access_token;else if(this.authSession&&idleSession.identityOf(this.authSession)===closingIdentity)token=this.authSession.access_token;}catch{}
+  idleSession.end(reason);++this.epoch;this.authSubscription?.unsubscribe();this.authSubscription=null;
+  clearInterval(this.inviteTimer);this.switching=false;this.movedHousehold=null;this.priorPendingCount=0;
+  client?.auth.stopAutoRefresh().catch(()=>{});storage?.detach(ownsStoredSession);
+  this.release?.();this.release=null;this.writer=false;this.user=null;this.household=null;this.members=[];this.pending=null;this.deferred=null;this.dirty=false;this.busy=false;this.reading=false;this.authenticating=null;this.authSession=null;this.gated=true;this.phase='login';this.error='';
+  this.loginMessage=reason==='idle'?'Cerramos la sesión por inactividad. Vuelve a entrar; los cambios guardados que estaban pendientes se conservan en este dispositivo.':'';
+  if($('#dialog').open)closeModal();$('#dialog').innerHTML='';$('#print-report').innerHTML='';$('#toast-region').innerHTML='';state=initialState();simulator=null;transactionFilters={month:'current',type:'',category:'',person:''};render();
+  this.connect();
+  // Revoke only the old user's current session. This public SDK method sends
+  // that user's JWT; it neither removes a new session nor broadcasts SIGNED_OUT.
+  if(token)client.auth.admin.signOut(token,'local').catch(()=>{}).finally(()=>storage?.retire());else storage?.retire();
+ }
 };
 document.addEventListener('input',e=>{if(e.target.closest('#main form')&&!e.target.closest('[id^="cloud-"]'))cloud.dirty=true;});
 document.addEventListener('change',e=>{if(e.target.closest('#main form')&&!e.target.closest('[id^="cloud-"]'))cloud.dirty=true;});
-document.addEventListener('click',e=>{const el=e.target.closest('[data-cloud]');if(!el)return;const actions={account:()=>cloud.account(),invite:()=>cloud.invite(),download:()=>cloud.download(),resolve:()=>cloud.resolve(),retry:()=>{closeModal();return cloud.flush();},logout:()=>cloud.logout(),reload:()=>location.reload()};Promise.resolve().then(()=>actions[el.dataset.cloud]?.()).catch(err=>toast(err.message,true));});
+document.addEventListener('click',e=>{const el=e.target.closest('[data-cloud]');if(!el)return;const actions={account:()=>cloud.account(),invite:()=>cloud.invite(),'new-invite':()=>cloud.invite(true),'copy-invite':()=>cloud.copyInvitation(),'join-existing':()=>cloud.joinExisting(),archives:()=>cloud.archives(),download:()=>cloud.download(),resolve:()=>cloud.resolve(),retry:()=>{closeModal();return cloud.flush();},logout:()=>cloud.logout(),reload:()=>location.reload()};Promise.resolve().then(()=>actions[el.dataset.cloud]?.()).catch(err=>toast(err.message,true));});
 document.addEventListener('submit',async e=>{
  const form=e.target;if(!['cloud-login','cloud-create','cloud-join'].includes(form.id))return;e.preventDefault();if(!form.reportValidity())return;
  const submit=form.querySelector('[type=submit]');if(submit.disabled)return;submit.disabled=true;const fd=new FormData(form),epoch=cloud.epoch;
  try{
-  if(form.id==='cloud-login'){const{data,error}=await cloud.client.auth.signInWithPassword({email:String(fd.get('email')).trim(),password:String(fd.get('password'))});if(error)throw Error('No se pudo entrar. Revisa tu correo, contraseña y conexión.');await cloud.session(data.session);}
+  if(form.id==='cloud-login'){const client=cloud.client;cloud.authenticating=client;try{const{data,error}=await client.auth.signInWithPassword({email:String(fd.get('email')).trim(),password:String(fd.get('password'))});if(client!==cloud.client||epoch!==cloud.epoch)return;if(error)throw Error('No se pudo entrar. Revisa tu correo, contraseña y conexión.');idleSession.begin(data.session);cloud.loginMessage='';await cloud.session(data.session);}finally{if(cloud.authenticating===client)cloud.authenticating=null;}}
   else if(form.id==='cloud-create'){
    const file=fd.get('backup');let candidate=cloud.local||initialState();if(file?.size){assert(file.size<=8000000,'La copia supera 8 MB.');candidate=migrateState(JSON.parse(await file.text(),(k,v)=>{assert(!['__proto__','prototype','constructor'].includes(k),'Clave no permitida en la copia.');return v;}));}
    validateState(candidate);const data=await cloud.rpc('finance_create_household',{p_name:String(fd.get('name')).trim(),p_state:cloud.wire(candidate)});if(epoch===cloud.epoch)await cloud.attach(data);
-  }else{const data=await cloud.rpc('finance_join',{p_token:String(fd.get('token')).trim()});if(epoch===cloud.epoch)await cloud.attach(data);}
+  }else{const data=await cloud.rpc('finance_join',{p_token:String(fd.get('token')).replace(/\s+/g,'').toLowerCase()});if(epoch===cloud.epoch)await cloud.attach(data);}
  }catch(err){if(form.isConnected)$('.form-error',form).textContent=err.message;}finally{if(form.isConnected)submit.disabled=false;}
 });
 
@@ -743,10 +1085,12 @@ document.addEventListener('submit',async e=>{
 let modalReturnFocus=null;
 let modalSubmit=null;
 function openModal(title,body,submitLabel,onSubmit,options={}){
+ assert(!cloud.switching,'Espera a que termine el cambio de hogar.');
+ const formEpoch=cloud.epoch;
  const d=$('#dialog');modalReturnFocus=document.activeElement;modalSubmit=onSubmit;
  d.innerHTML='<form id="modal-form"><div class="modal-head"><h2 id="modal-title">'+escapeHtml(title)+'</h2><button class="icon-btn" type="button" data-action="close-modal" aria-label="Cerrar">'+icon('close',18)+'</button></div><div class="modal-body">'+body+'<div class="form-error" role="alert"></div></div><div class="modal-actions">'+button('Cancelar','close-modal','secondary')+'<button class="btn '+(options.danger?'danger':'')+'" type="submit">'+escapeHtml(submitLabel)+'</button></div></form>';
  if(!d.open)d.showModal();
- $('#modal-form').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget;if(!form.reportValidity())return;const submit=$('[type=submit]',form);if(submit.disabled)return;submit.disabled=true;try{const result=await modalSubmit(new FormData(form),form);if(result!==false&&form.isConnected)closeModal();}catch(e){if(form.isConnected)$('.form-error',form).textContent=e.message;}finally{submit.disabled=false;}});
+ $('#modal-form').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget;if(!form.reportValidity())return;const submit=$('[type=submit]',form);if(submit.disabled)return;submit.disabled=true;try{assert(!cloud.enabled||formEpoch===cloud.epoch,'El hogar o la sesión cambió. Cierra este formulario y vuelve a abrirlo.');const result=await onSubmit(new FormData(form),form);if(result!==false&&form.isConnected)closeModal();}catch(e){if(form.isConnected)$('.form-error',form).textContent=e.message;}finally{submit.disabled=false;}});
  requestAnimationFrame(()=>{const input=$('input:not([type=hidden]),select,textarea',d);(input||$('button[type=submit]',d)).focus();});
 }
 function closeModal(){const d=$('#dialog');d.close();modalSubmit=null;modalReturnFocus?.isConnected&&modalReturnFocus.focus();}

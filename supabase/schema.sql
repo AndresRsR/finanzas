@@ -36,6 +36,10 @@ create table if not exists finance_private.invitations (
   created_at timestamptz not null default clock_timestamp()
 );
 create index if not exists finance_invitations_household on finance_private.invitations(household_id);
+alter table finance_private.invitations add column if not exists source_household_id uuid
+  references finance_private.households(id) on delete restrict;
+alter table finance_private.invitations add column if not exists source_revision bigint
+  check (source_revision between 1 and 9007199254740991);
 create table if not exists finance_private.mutations (
   household_id uuid not null references finance_private.households(id) on delete cascade,
   actor_id uuid not null references auth.users(id) on delete cascade,
@@ -46,12 +50,21 @@ create table if not exists finance_private.mutations (
   created_at timestamptz not null default clock_timestamp(),
   primary key (household_id, actor_id, mutation_id)
 );
+-- A sole owner's previous household stays private and recoverable after moving.
+-- It has no active members, and its pending invitations are revoked on archive.
+create table if not exists finance_private.household_archives (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  household_id uuid not null references finance_private.households(id) on delete restrict,
+  archived_at timestamptz not null default clock_timestamp(),
+  primary key (user_id, household_id)
+);
 
 -- No direct client table access. RLS has no permissive policies: default deny.
 alter table finance_private.households enable row level security;
 alter table finance_private.members enable row level security;
 alter table finance_private.invitations enable row level security;
 alter table finance_private.mutations enable row level security;
+alter table finance_private.household_archives enable row level security;
 revoke all on all tables in schema finance_private from public, anon, authenticated;
 revoke all on all sequences in schema finance_private from public, anon, authenticated;
 alter default privileges in schema finance_private revoke execute on functions from public;
@@ -167,6 +180,11 @@ begin
       select 1 from finance_private.members m where m.household_id = h.id and m.user_id = v_uid
     ) for update of h;
   if not found then raise exception using errcode = '42501', message = 'No tienes acceso a este hogar.'; end if;
+  -- The EXISTS above may have used a snapshot from before waiting for the lock.
+  -- Moving households revokes membership under this same lock; check it afresh.
+  if not exists (select 1 from finance_private.members m where m.household_id = p_household and m.user_id = v_uid) then
+    raise exception using errcode = '42501', message = 'Ya no tienes acceso a este hogar.';
+  end if;
   v_hash := pg_catalog.sha256(pg_catalog.convert_to(p_state::text, 'UTF8'));
   select * into v_mutation from finance_private.mutations x
     where x.household_id = p_household and x.actor_id = v_uid and x.mutation_id = p_mutation;
@@ -196,7 +214,7 @@ returns jsonb language plpgsql security definer set search_path = '' as $$
 declare
   v_uid uuid := finance_private.require_user();
   v_email text := pg_catalog.lower(pg_catalog.btrim(p_email));
-  v_token text; v_expires timestamptz;
+  v_token text; v_expires timestamptz; v_now timestamptz;
 begin
   if v_email is null or pg_catalog.char_length(v_email) > 254
     or v_email !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' then
@@ -206,6 +224,9 @@ begin
     select 1 from finance_private.members m where m.household_id = h.id and m.user_id = v_uid and m.role = 'owner'
   ) for update of h;
   if not found then raise exception using errcode = '42501', message = 'Solo quien creó el hogar puede generar la invitación.'; end if;
+  if not exists (select 1 from finance_private.members m where m.household_id = p_household and m.user_id = v_uid and m.role = 'owner') then
+    raise exception using errcode = '42501', message = 'Ya no administras este hogar.';
+  end if;
   if (select pg_catalog.count(*) from finance_private.members m where m.household_id = p_household) >= 2 then
     raise exception using errcode = '23514', message = 'Este hogar ya tiene sus dos integrantes.';
   end if;
@@ -213,14 +234,16 @@ begin
     where m.household_id = p_household and pg_catalog.lower(u.email) = v_email) then
     raise exception using errcode = '22023', message = 'Ese correo ya pertenece al hogar.';
   end if;
-  -- A new invitation revokes previous links, including links for a mistyped email.
+  -- Regenerating for the same email must not invalidate a code already copied.
+  -- Changing the intended recipient does revoke previous recipients' codes.
   update finance_private.invitations set revoked_at = pg_catalog.clock_timestamp()
-    where household_id = p_household and used_at is null and revoked_at is null;
+    where household_id = p_household and email <> v_email and used_at is null and revoked_at is null;
   v_token := pg_catalog.replace(pg_catalog.gen_random_uuid()::text || pg_catalog.gen_random_uuid()::text, '-', '');
-  v_expires := pg_catalog.clock_timestamp() + interval '7 days';
-  insert into finance_private.invitations(household_id, email, token_hash, expires_at)
-    values (p_household, v_email, pg_catalog.sha256(pg_catalog.convert_to(v_token, 'UTF8')), v_expires);
-  return pg_catalog.jsonb_build_object('token', v_token, 'expires_at', v_expires);
+  v_now := pg_catalog.clock_timestamp();
+  v_expires := v_now + interval '10 minutes';
+  insert into finance_private.invitations(household_id, email, token_hash, expires_at, created_at)
+    values (p_household, v_email, pg_catalog.sha256(pg_catalog.convert_to(v_token, 'UTF8')), v_expires, v_now);
+  return pg_catalog.jsonb_build_object('token', v_token, 'expires_at', v_expires, 'server_now', v_now);
 end;
 $$;
 
@@ -235,6 +258,7 @@ begin
   end if;
   -- Match the verified CURRENT Auth email, never user metadata or a client claim.
   select pg_catalog.lower(u.email) into v_email from auth.users u where u.id = v_uid for update;
+  perform finance_private.require_user();
   v_hash := pg_catalog.sha256(pg_catalog.convert_to(p_token, 'UTF8'));
   select i.household_id into v_household from finance_private.invitations i where i.token_hash = v_hash;
   if v_household is null then
@@ -243,8 +267,7 @@ begin
   -- All capacity checks use the same household lock as invitation creation.
   perform 1 from finance_private.households h where h.id = v_household for update;
   select i.* into v_invite from finance_private.invitations i where i.token_hash = v_hash for update;
-  if not found or v_invite.revoked_at is not null or v_invite.expires_at <= pg_catalog.clock_timestamp()
-    or v_invite.email <> v_email then
+  if not found or v_invite.email <> v_email then
     raise exception using errcode = '22023', message = 'La invitación no es válida para esta cuenta o ya venció.';
   end if;
   select m.household_id into v_existing from finance_private.members m where m.user_id = v_uid;
@@ -252,6 +275,9 @@ begin
   if v_invite.used_at is not null then
     if v_invite.used_by = v_uid and v_existing = v_household then return finance_private.bootstrap(); end if;
     raise exception using errcode = '22023', message = 'La invitación ya fue utilizada.';
+  end if;
+  if v_invite.revoked_at is not null or v_invite.expires_at <= pg_catalog.clock_timestamp() then
+    raise exception using errcode = '22023', message = 'La invitación venció o fue reemplazada. Pide un código nuevo.';
   end if;
   if v_existing is not null then
     raise exception using errcode = '23505', message = 'Tu cuenta ya pertenece a un hogar.';
@@ -262,6 +288,85 @@ begin
   insert into finance_private.members(user_id, household_id, role) values (v_uid, v_household, 'member');
   update finance_private.invitations set used_at = pg_catalog.clock_timestamp(), used_by = v_uid where id = v_invite.id;
   return finance_private.bootstrap();
+end;
+$$;
+
+create or replace function finance_private.join_existing(p_token text, p_current_household uuid, p_expected_revision bigint)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare
+  v_uid uuid := finance_private.require_user(); v_email text; v_destination uuid;
+  v_existing uuid; v_role text; v_hash bytea; v_revision bigint;
+  v_invite finance_private.invitations%rowtype;
+begin
+  if p_token is null or p_token !~ '^[0-9a-f]{64}$' or p_current_household is null
+    or p_expected_revision is null or p_expected_revision not between 1 and 9007199254740991 then
+    raise exception using errcode = '22023', message = 'Falta una invitación válida o la revisión del hogar que vas a conservar.';
+  end if;
+  -- Same lock order as create/join: current Auth user, ordered households, token.
+  select pg_catalog.lower(u.email) into v_email from auth.users u where u.id = v_uid for update;
+  perform finance_private.require_user();
+  v_hash := pg_catalog.sha256(pg_catalog.convert_to(p_token, 'UTF8'));
+  select i.household_id into v_destination from finance_private.invitations i where i.token_hash = v_hash;
+  if v_destination is null or v_destination = p_current_household then
+    raise exception using errcode = '22023', message = 'La invitación no es válida para cambiar de hogar.';
+  end if;
+  perform h.id from finance_private.households h
+    where h.id in (p_current_household, v_destination) order by h.id for update;
+  select i.* into v_invite from finance_private.invitations i where i.token_hash = v_hash for update;
+  if not found or v_invite.email <> v_email then
+    raise exception using errcode = '22023', message = 'La invitación no es válida para esta cuenta.';
+  end if;
+  select m.household_id, m.role into v_existing, v_role from finance_private.members m where m.user_id = v_uid;
+  select h.revision into v_revision from finance_private.households h where h.id = p_current_household;
+  -- A lost acknowledgement can be retried even after expiry. It must refer to
+  -- this exact completed switch, not to another consumed invitation or archive.
+  if v_invite.used_at is not null then
+    if v_invite.used_by = v_uid and v_existing = v_destination
+      and v_invite.source_household_id = p_current_household
+      and v_invite.source_revision = p_expected_revision
+      and v_revision = p_expected_revision and exists (
+        select 1 from finance_private.household_archives a
+        where a.user_id = v_uid and a.household_id = p_current_household
+      ) then return finance_private.bootstrap(); end if;
+    raise exception using errcode = '22023', message = 'La invitación ya fue utilizada.';
+  end if;
+  if v_invite.revoked_at is not null or v_invite.expires_at <= pg_catalog.clock_timestamp() then
+    raise exception using errcode = '22023', message = 'La invitación venció o fue reemplazada. Pide un código nuevo.';
+  end if;
+  if v_existing is distinct from p_current_household or v_role is distinct from 'owner' then
+    raise exception using errcode = '42501', message = 'Solo puedes conservar y dejar un hogar que tú administras.';
+  end if;
+  if (select pg_catalog.count(*) from finance_private.members m where m.household_id = p_current_household) <> 1 then
+    raise exception using errcode = '23514', message = 'Tu hogar actual tiene otro integrante. No se puede archivar con este cambio.';
+  end if;
+  if v_revision is distinct from p_expected_revision then
+    raise exception using errcode = '40001', message = 'Tu hogar cambió desde que lo revisaste. Actualiza y vuelve a confirmar antes de unirte.';
+  end if;
+  if (select pg_catalog.count(*) from finance_private.members m where m.household_id = v_destination) >= 2
+    or not exists (select 1 from finance_private.members m where m.household_id = v_destination and m.role = 'owner') then
+    raise exception using errcode = '23514', message = 'El hogar de destino ya está completo o no está disponible.';
+  end if;
+  insert into finance_private.household_archives(user_id, household_id) values (v_uid, p_current_household);
+  update finance_private.invitations set revoked_at = pg_catalog.clock_timestamp()
+    where household_id = p_current_household and used_at is null and revoked_at is null;
+  update finance_private.members set household_id = v_destination, role = 'member', joined_at = pg_catalog.clock_timestamp()
+    where user_id = v_uid;
+  update finance_private.invitations set used_at = pg_catalog.clock_timestamp(), used_by = v_uid,
+    source_household_id = p_current_household, source_revision = p_expected_revision where id = v_invite.id;
+  return finance_private.bootstrap();
+end;
+$$;
+
+create or replace function finance_private.archives()
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare v_uid uuid := finance_private.require_user(); v_archives jsonb;
+begin
+  select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('id', h.id, 'name', h.name,
+      'state', h.state, 'revision', h.revision, 'archived_at', a.archived_at)
+      order by a.archived_at desc, h.id)
+    into v_archives from finance_private.household_archives a
+    join finance_private.households h on h.id = a.household_id where a.user_id = v_uid;
+  return pg_catalog.jsonb_build_object('archives', coalesce(v_archives, '[]'::jsonb));
 end;
 $$;
 
@@ -276,15 +381,22 @@ create or replace function public.finance_invite(p_household uuid, p_email text)
 returns jsonb language sql security invoker set search_path = '' as $$ select finance_private.invite(p_household, p_email); $$;
 create or replace function public.finance_join(p_token text)
 returns jsonb language sql security invoker set search_path = '' as $$ select finance_private.join_invite(p_token); $$;
+create or replace function public.finance_join_existing(p_token text, p_current_household uuid, p_expected_revision bigint)
+returns jsonb language sql security invoker set search_path = '' as $$ select finance_private.join_existing(p_token, p_current_household, p_expected_revision); $$;
+create or replace function public.finance_archives()
+returns jsonb language sql security invoker set search_path = '' as $$ select finance_private.archives(); $$;
 
 revoke all on all functions in schema finance_private from public, anon, authenticated;
 grant execute on function finance_private.bootstrap(), finance_private.create_household(text, jsonb),
-  finance_private.save(uuid, bigint, jsonb, uuid), finance_private.invite(uuid, text), finance_private.join_invite(text)
+  finance_private.save(uuid, bigint, jsonb, uuid), finance_private.invite(uuid, text), finance_private.join_invite(text),
+  finance_private.join_existing(text, uuid, bigint), finance_private.archives()
   to authenticated;
 revoke all on function public.finance_bootstrap(), public.finance_create_household(text, jsonb),
-  public.finance_save(uuid, bigint, jsonb, uuid), public.finance_invite(uuid, text), public.finance_join(text)
+  public.finance_save(uuid, bigint, jsonb, uuid), public.finance_invite(uuid, text), public.finance_join(text),
+  public.finance_join_existing(text, uuid, bigint), public.finance_archives()
   from public, anon, authenticated;
 grant execute on function public.finance_bootstrap(), public.finance_create_household(text, jsonb),
-  public.finance_save(uuid, bigint, jsonb, uuid), public.finance_invite(uuid, text), public.finance_join(text)
+  public.finance_save(uuid, bigint, jsonb, uuid), public.finance_invite(uuid, text), public.finance_join(text),
+  public.finance_join_existing(text, uuid, bigint), public.finance_archives()
   to authenticated;
 commit;
