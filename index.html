@@ -56,7 +56,20 @@ dialog{padding:0;border:1px solid var(--line);border-radius:20px;background:var(
 @media(max-width:620px){.cash-legend,.cash-legend>.actual-legend-row,.cash-legend-head{column-gap:8px}.cash-half{padding-left:8px}.cash-legend .actual-legend-row{font-size:.8rem}}
 .cloud-status{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border:1px solid var(--line);background:var(--green-soft);border-radius:12px;font-size:.82rem;margin-bottom:24px}.cloud-warning{background:var(--orange-soft);color:var(--orange)}.cloud-status span{overflow-wrap:anywhere}.cloud-gated .sidebar,.cloud-gated .topbar{display:none}.cloud-gated .workspace{margin:0}.cloud-gated .main{padding:36px 16px}.cloud-gate{max-width:540px;margin:2vh auto;padding:32px}.cloud-gate h1{margin:12px 0 20px;font-size:2rem}.cloud-form{display:grid;gap:16px}.cloud-form input[type=file]{max-width:100%;font-size:.85rem}.cloud-form .check{align-items:start}.cloud-form .form-error:empty{display:none}@media(max-width:480px){.cloud-status{align-items:flex-start;flex-direction:column}.cloud-gate{padding:24px}.cloud-gate h1{font-size:1.65rem}}@media print{.cloud-status{display:none!important}}
 /* MOBILE_CSS */
-/* Mobile-only refinements. Inlined by build.cjs; desktop and print stay unchanged. */
+/* Responsive refinements. Inlined by build.cjs; printed reports stay unchanged. */
+@media screen {
+  .field-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .field-grid > *, .input-money, .input-percentage { min-width: 0; }
+  .field-grid label { overflow-wrap: anywhere; }
+  input, select, textarea { max-width: 100%; }
+  input[type=date], input[type=month] { display: block; min-inline-size: 0; text-align: left; }
+  input::-webkit-date-and-time-value { min-height: 1.5em; text-align: left; }
+  input::-webkit-datetime-edit { padding: 0; }
+  /* Keep table headers for screen readers inside the table's scroll area. */
+  .table-scroll { position: relative; min-width: 0; max-width: 100%; }
+  .donut-layout { flex-wrap: wrap; }
+  #main:focus { outline: none; }
+}
 .session-message{padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--green-soft);margin-bottom:18px;font-size:.9rem}
 #idle-dialog{max-width:390px}
 .idle-content{padding:26px;overflow-y:auto;min-height:0}
@@ -109,6 +122,34 @@ body.session-hidden::after{content:'FINANCE';position:fixed;inset:0;z-index:1000
 }
 
 @media screen and (max-width: 620px) {
+  .field-grid { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .field-grid .full { grid-column: 1; }
+  .field-grid .field-grid { gap: 18px; }
+  .card-head { flex-wrap: wrap; align-items: flex-start; }
+  .card-head > h2, .card-head > div { min-width: 0; flex: 1 1 180px; }
+  .card-head .btn, .card-head .link-btn { max-width: 100%; }
+  .card-head .link-btn { white-space: normal; text-align: left; }
+  .card-footer, .progress-label { flex-wrap: wrap; }
+  .card-footer > *, .progress-label > * { min-width: 0; overflow-wrap: anywhere; }
+  .detail-line { flex-wrap: wrap; align-items: flex-start; gap: 6px 14px; }
+  .detail-line > .label { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }
+  .detail-line > strong { max-width: 100%; margin-left: auto; white-space: normal; overflow-wrap: anywhere; text-align: right; }
+  .goal-row { flex-wrap: wrap; }
+  .goal-row > div { min-width: 0; flex: 1 1 140px; overflow-wrap: anywhere; }
+  .goal-row > h2, .goal-row > h3 { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+  .fund-row:has(> .btn) { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 12px; }
+  .fund-row > span, .fund-row > div { min-width: 0; overflow-wrap: anywhere; }
+  .fund-row:has(> .btn) > strong { margin-left: 0; text-align: right; }
+  .fund-row > .btn { grid-column: 1 / -1; }
+  .forecast { grid-template-columns: minmax(0, 1fr); }
+  .forecast > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .forecast strong { margin-top: 0; }
+  .filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filters label { min-width: 0; }
+  .stat { min-width: 0; }
+  .stat-number { font-size: clamp(1.25rem, 6vw, 1.65rem); white-space: normal; overflow-wrap: anywhere; }
+  .stat-top > span:first-child { min-width: 0; }
+  .stat-icon { flex-shrink: 0; }
   .topbar {
     padding-left: max(13px, var(--mobile-safe-left));
     padding-right: max(13px, var(--mobile-safe-right));
@@ -151,6 +192,8 @@ body.session-hidden::after{content:'FINANCE';position:fixed;inset:0;z-index:1000
     width: 0;
     flex: 1 1 auto;
     text-overflow: ellipsis;
+    padding-inline: 2px;
+    background: transparent;
   }
 
   input,
@@ -207,6 +250,8 @@ body.session-hidden::after{content:'FINANCE';position:fixed;inset:0;z-index:1000
     flex: 0 0 auto;
   }
 
+  .modal-head h2 { min-width: 0; line-height: 1.35; overflow-wrap: anywhere; }
+
   .modal-body {
     min-height: 0;
     flex: 1 1 auto;
@@ -217,12 +262,21 @@ body.session-hidden::after{content:'FINANCE';position:fixed;inset:0;z-index:1000
   }
 
   .modal-actions {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .modal-actions .btn {
-    flex: 1 1 120px;
+    min-width: 0;
+    width: 100%;
+    padding-inline: 10px;
   }
+}
+
+@media screen and (max-width: 480px) {
+  .filters { grid-template-columns: minmax(0, 1fr); }
+  .form-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .form-row input { text-align: left; }
 }
 
 @media screen and (max-width: 620px) and (max-height: 480px) {
@@ -456,7 +510,7 @@ function renderShell(){
  document.documentElement.dataset.theme=state.settings.theme;
  $('#sidebar').innerHTML='<div class="brand"><span class="brand-mark">'+icon('home',25)+'</span><div><strong>FINANCE</strong><small>Un equipo. Un futuro.</small></div></div><div class="nav-caption">NUESTRO ESPACIO</div><nav class="nav">'+navItems.map(([id,name,ic])=>'<button class="'+(page===id?'active':'')+'" data-page="'+id+'" '+(page===id?'aria-current="page"':'')+'>'+icon(ic)+'<span>'+name+'</span></button>').join('')+'</nav><div class="sidebar-foot"><div class="privacy"><strong>'+icon('shield',15)+(cloud.enabled?' Hogar compartido':' Solo en este navegador')+'</strong>'+(cloud.enabled?'Acceso privado para los dos.<br>Consulta el estado de sincronización.':'Tus finanzas se guardan aquí.<br>Exporta una copia de vez en cuando.')+'</div><div class="people"><span class="avatar">'+escapeHtml(state.settings.names[0].slice(0,1))+'</span><span class="avatar second">'+escapeHtml(state.settings.names[1].slice(0,1))+'</span><span>'+escapeHtml(state.settings.couple)+'</span></div></div>';
  const keys=Object.keys(state.months).sort(),index=keys.indexOf(state.selectedMonth);
- $('#topbar').innerHTML='<button class="icon-btn mobile-menu" data-action="menu" aria-label="Abrir menú">'+icon('menu')+'</button><span class="breadcrumb">'+icon('home',16)+escapeHtml(state.settings.couple)+'<span>/</span><strong>'+navItems.find(n=>n[0]===page)[1]+'</strong></span><div class="top-actions"><div class="month-control"><button class="icon-btn" data-action="previous-month" aria-label="Mes anterior" '+(index===0?'disabled':'')+'>'+icon('left',16)+'</button><select id="month-select" aria-label="Mes seleccionado">'+keys.map(k=>'<option value="'+k+'" '+(k===state.selectedMonth?'selected':'')+'>'+monthName(k)+'</option>').join('')+'</select><button class="icon-btn" data-action="next-month" aria-label="Mes siguiente" '+(index===keys.length-1?'disabled':'')+'>'+icon('chevron',16)+'</button></div><button class="icon-btn print-btn" data-action="print" aria-label="Imprimir o guardar PDF" title="Imprimir / Guardar PDF">'+icon('print',18)+'</button><button class="icon-btn" data-action="theme" aria-label="Cambiar a modo '+(state.settings.theme==='light'?'oscuro':'claro')+'" title="Cambiar apariencia">'+icon(state.settings.theme==='light'?'moon':'sun',18)+'</button></div>';
+ $('#topbar').innerHTML='<button class="icon-btn mobile-menu" data-action="menu" aria-label="Abrir menú">'+icon('menu')+'</button><span class="breadcrumb">'+icon('home',16)+escapeHtml(state.settings.couple)+'<span>/</span><strong>'+navItems.find(n=>n[0]===page)[1]+'</strong></span><div class="top-actions"><div class="month-control"><button class="icon-btn" data-action="previous-month" aria-label="Mes anterior" '+(index===0?'disabled':'')+'>'+icon('left',16)+'</button><select id="month-select" aria-label="Mes seleccionado">'+keys.map(k=>'<option value="'+k+'" '+(k===state.selectedMonth?'selected':'')+'>'+monthName(k,true).replace(/\s+de\s+/g,' ')+'</option>').join('')+'</select><button class="icon-btn" data-action="next-month" aria-label="Mes siguiente" '+(index===keys.length-1?'disabled':'')+'>'+icon('chevron',16)+'</button></div><button class="icon-btn print-btn" data-action="print" aria-label="Imprimir o guardar PDF" title="Imprimir / Guardar PDF">'+icon('print',18)+'</button><button class="icon-btn" data-action="theme" aria-label="Cambiar a modo '+(state.settings.theme==='light'?'oscuro':'claro')+'" title="Cambiar apariencia">'+icon(state.settings.theme==='light'?'moon':'sun',18)+'</button></div>';
 }
 function render(){if(typeof cloud!=='undefined'&&cloud.enabled&&cloud.gated){cloud.gate();return;}document.body.classList.remove('cloud-gated');cloud.dirty=false;renderShell();const views={home:renderHome,daily:renderDaily,budget:renderBudget,transactions:renderTransactions,goals:renderGoals,house:renderHouse,bike:renderBike,savings:renderSavings,simulator:renderSimulator,history:renderHistory,settings:renderSettings};$('#main').innerHTML='<div id="cloud-status">'+cloud.banner()+'</div><div class="fade-in">'+views[page]()+(page==='budget'?renderPersonalCards():'')+'</div><footer class="footer"><span>'+icon('heart',13)+' Finanzas, hogar y metas juntos</span><span>'+icon(storageProblem?'alert':'check',13)+(storageProblem?'Guardado no disponible':state.updatedAt?'Última actualización: '+new Date(state.updatedAt).toLocaleString('es-EC'):'Listos para empezar · datos iniciales editables')+'</span></footer>';showStorageWarning();}
 function healthBar(t=totals()){const h=health(t);return '<div class="statusbar '+h.class+'"><div>'+icon(h.icon,18)+'<span><strong>'+h.label+'.</strong> '+h.text+'</span></div><span class="badge">'+statusNames[month().status]+'</span></div>';}
