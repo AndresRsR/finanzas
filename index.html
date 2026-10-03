@@ -92,11 +92,21 @@ body.session-hidden::after{content:'FINANCE';position:fixed;inset:0;z-index:1000
   }
 
   .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 25;
     height: calc(70px + var(--mobile-safe-top));
     padding-top: var(--mobile-safe-top);
     padding-left: max(20px, var(--mobile-safe-left));
     padding-right: max(20px, var(--mobile-safe-right));
+    transform: translateY(0);
+    transition: transform 180ms ease;
   }
+
+  .topbar.mobile-header-hidden { transform: translateY(-100%); }
+  /* Keyboard focus must never land on a control above the visible viewport. */
+  .topbar:has(:focus-visible) { transform: translateY(0); transition: none; }
+  html { scroll-padding-top: calc(82px + var(--mobile-safe-top)); }
 
   .main {
     padding-left: max(20px, var(--mobile-safe-left));
@@ -124,6 +134,10 @@ body.session-hidden::after{content:'FINANCE';position:fixed;inset:0;z-index:1000
     bottom: calc(18px + var(--mobile-safe-bottom));
     max-width: calc(100% - 36px - var(--mobile-safe-left) - var(--mobile-safe-right));
   }
+}
+
+@media screen and (max-width: 900px) and (prefers-reduced-motion: reduce) {
+  .topbar { transition: none; }
 }
 
 @media screen and (max-width: 620px) {
@@ -475,6 +489,19 @@ function showStorageWarning(){const el=$('#storage-alert');el.className=storageP
 function commit(change,message){if(typeof cloud!=='undefined'&&cloud.enabled&&!idleSession.check())throw Error('La sesión terminó. Vuelve a entrar para guardar.');const before=clone(state);try{change();reconcileRedirects();validateFundTimeline(state);validateCashChange(before,state);if(typeof cloud!=='undefined'&&cloud.enabled){const queued=cloud.record(before,state);render();if(queued)toast('Cambio conservado; enviando al hogar…');}else{save();render();if(message)toast(message);}}catch(e){state=before;throw e;}}
 function ensureOpen(k=state.selectedMonth){assert(month(k),'Primero crea el mes de este movimiento.');assert(month(k).status!=='closed','Este mes está cerrado. Reábrelo desde Mes a mes antes de hacer cambios.');assert(!Object.keys(state.months).some(key=>key>k&&month(key).status==='closed'),'Hay un mes posterior cerrado. Reábrelo primero para conservar un historial coherente.');}
 function addTransaction(t){const k=t.date.slice(0,7);ensureOpen(k);state.transactions.push(t);validateFundTimeline(state);redirectFinishedGoal(k);}
+// Call inside commit so the complete edit, including derived balances, rolls back on failure.
+function replaceTransaction(original,updated){
+ const index=state.transactions.findIndex(t=>t.id===original.id),current=state.transactions[index];
+ assert(current,'Este movimiento ya no existe. Cierra el formulario y revisa la lista.');
+ const signature=t=>JSON.stringify(Object.keys(t).sort().map(key=>[key,t[key]]));
+ assert(signature(current)===signature(original),'Este movimiento cambió mientras lo editabas. Cierra el formulario y vuelve a abrirlo.');
+ assert(current.source==='manual'&&updated.source==='manual','Los movimientos automáticos se cambian reabriendo el mes.');
+ ensureOpen(current.date.slice(0,7));assert(validDate(updated.date),'Selecciona una fecha válida.');ensureOpen(updated.date.slice(0,7));
+ assert(updated.id===current.id&&updated.type===current.type&&isNeomar(updated)===isNeomar(current),'Conserva el tipo del movimiento original.');
+ assert(cashMode(current.date.slice(0,7))===cashMode(updated.date.slice(0,7)),'La fecha debe permanecer en el mismo periodo de cuentas o cajas reales que el movimiento original.');
+ state.transactions[index]=updated;
+ validateState(state);redirectFinishedGoal(updated.date.slice(0,7));
+}
 function reconcileRedirects(){
  const g=goal('furniture');
  for(const m of Object.values(state.months)){
@@ -547,7 +574,7 @@ function stableDonut(){const a=stableAmounts();return donut([['Hogar · 40%',a.h
 function filteredTransactions(){const f=transactionFilters,k=f.month==='current'?state.selectedMonth:f.month;return state.transactions.filter(t=>(!k||t.date.startsWith(k))&&(!f.type||t.type===f.type)&&(!f.category||t.category===f.category)&&(!f.person||t.person===f.person)).slice().sort((a,b)=>b.date.localeCompare(a.date));}
 function selectOptions(items,selected){return items.map(([value,label])=>'<option value="'+escapeHtml(value)+'" '+(value===selected?'selected':'')+'>'+escapeHtml(label)+'</option>').join('');}
 function categoryOptions(){return [...Object.entries(categoryNames),...state.goals.map(g=>['goal:'+g.id,g.name])].map(([id])=>[id,categoryName(id)]);}
-function transactionsTable(list,allowDelete=true){if(!list.length)return empty('Aún no hay movimientos','Los registros que coincidan con este mes y estos filtros aparecerán aquí.','new-transaction','Nuevo movimiento');return '<div class="table-scroll"><table><thead><tr><th>Fecha</th><th>Movimiento</th><th>Persona / cuenta</th><th>Tipo</th><th class="right">Monto</th>'+(allowDelete?'<th><span class="sr-only">Acciones</span></th>':'')+'</tr></thead><tbody>'+list.map(t=>'<tr><td class="nowrap">'+dateName(t.date)+'</td><td class="table-desc">'+escapeHtml(t.description)+'<span class="sub">'+escapeHtml(categoryName(t.category))+(t.subtype?' · '+t.subtype:'')+(t.type==='transfer'?' · desde '+escapeHtml(fundName(t.from)):'')+'</span></td><td>'+escapeHtml(personName(t.person))+'<span class="sub">'+escapeHtml(t.type==='income'&&isPersonalIncome(t)?'Caja personal':cashMode(t.date.slice(0,7))&&t.type==='expense'?cashLabel(cashExpenseFund(t)):accountName(t.account))+'</span></td><td><span class="badge '+(t.type==='income'?'green':t.type==='expense'?'':'yellow')+'">'+typeNames[t.type]+'</span>'+(t.source==='close'?'<span class="sub">Cierre automático</span>':'')+'</td><td class="right nowrap numeric">'+(t.type==='expense'?'−':'')+money(t.amount)+'</td>'+(allowDelete?'<td class="right">'+(t.source!=='close'&&month(t.date.slice(0,7)).status!=='closed'?'<button class="icon-btn" aria-label="Eliminar '+escapeHtml(t.description)+'" title="Eliminar movimiento" data-action="delete-transaction" data-id="'+escapeHtml(t.id)+'">'+icon('trash',16)+'</button>':icon('lock',15))+'</td>':'')+'</tr>').join('')+'</tbody></table></div>';}
+function transactionsTable(list,allowDelete=true){if(!list.length)return empty('Aún no hay movimientos','Los registros que coincidan con este mes y estos filtros aparecerán aquí.','new-transaction','Nuevo movimiento');return '<div class="table-scroll"><table><thead><tr><th>Fecha</th><th>Movimiento</th><th>Persona / cuenta</th><th>Tipo</th><th class="right">Monto</th>'+(allowDelete?'<th><span class="sr-only">Acciones</span></th>':'')+'</tr></thead><tbody>'+list.map(t=>'<tr><td class="nowrap">'+dateName(t.date)+'</td><td class="table-desc">'+escapeHtml(t.description)+'<span class="sub">'+escapeHtml(categoryName(t.category))+(t.subtype?' · '+t.subtype:'')+(t.type==='transfer'?' · desde '+escapeHtml(fundName(t.from)):'')+'</span></td><td>'+escapeHtml(personName(t.person))+'<span class="sub">'+escapeHtml(t.type==='income'&&isPersonalIncome(t)?'Caja personal':cashMode(t.date.slice(0,7))&&t.type==='expense'?cashLabel(cashExpenseFund(t)):accountName(t.account))+'</span></td><td><span class="badge '+(t.type==='income'?'green':t.type==='expense'?'':'yellow')+'">'+typeNames[t.type]+'</span>'+(t.source==='close'?'<span class="sub">Cierre automático</span>':'')+'</td><td class="right nowrap numeric">'+(t.type==='expense'?'−':'')+money(t.amount)+'</td>'+(allowDelete?'<td class="right nowrap">'+(t.source!=='close'&&month(t.date.slice(0,7)).status!=='closed'?'<button class="icon-btn" aria-label="Editar '+escapeHtml(t.description)+'" title="Editar movimiento" data-action="edit-transaction" data-id="'+escapeHtml(t.id)+'">'+icon('edit',16)+'</button> <button class="icon-btn" aria-label="Eliminar '+escapeHtml(t.description)+'" title="Eliminar movimiento" data-action="delete-transaction" data-id="'+escapeHtml(t.id)+'">'+icon('trash',16)+'</button>':icon('lock',15))+'</td>':'')+'</tr>').join('')+'</tbody></table></div>';}
 function renderTransactions(){const tx=filteredTransactions(),f=transactionFilters;return heading('La historia de nuestro dinero.','Una sola lista para ingresos diarios, extras, gastos, aportes y transferencias.',button('Exportar CSV','export-csv','secondary','down')+button('Nuevo movimiento','new-transaction','','plus'))+'<section class="card"><div class="filters"><label>Mes<select data-filter="month">'+selectOptions([['current','Mes seleccionado'],['','Todos los meses'],...Object.keys(state.months).sort().map(k=>[k,monthName(k)])],f.month)+'</select></label><label>Categoría<select data-filter="category">'+selectOptions([['','Todas las categorías'],...categoryOptions()],f.category)+'</select></label><label>Persona<select data-filter="person">'+selectOptions([['','Todas'],['1',state.settings.names[0]],['2',state.settings.names[1]],['both','Ambos']],f.person)+'</select></label><label>Tipo<select data-filter="type">'+selectOptions([['','Todos'],...Object.entries(typeNames)],f.type)+'</select></label></div>'+transactionsTable(tx)+'<div class="card-footer"><span>'+tx.length+' movimientos</span><span>Ingresos '+money(sum(tx.filter(t=>t.type==='income').map(t=>t.amount)))+' · Gastos '+money(sum(tx.filter(t=>t.type==='expense').map(t=>t.amount)))+'</span></div></section><div class="section-space">'+notice('Los ingresos diarios de NEOMAR aparecen aquí una sola vez. Edítalos desde Ingresos NEOMAR. Registra otros ingresos como bonos o extraordinarios; las transferencias no crean ingresos.')+'</div>';}
 function renderGoals(){return heading('Hagamos espacio para los sueños.','Cada aporte nos acerca a la vida que queremos construir.',button('Nueva meta','new-goal','','plus'))+'<div class="grid cols2">'+state.goals.map(g=>{const p=requiredContribution(g);return '<article class="card goal-card"><div class="card-head"><span class="tile-icon '+(g.id==='furniture'?'':'green')+'">'+icon(g.id==='furniture'?'sofa':'target',24)+'</span><span class="badge '+(p.remaining===0?'green':'yellow')+'">'+(p.remaining===0?'Meta completada':p.months?monthName(g.due.slice(0,7)):'Plazo vencido')+'</span></div><h2>'+escapeHtml(g.name)+'</h2><div class="savings-number">'+money(p.achieved)+' <span class="muted" style="font-size:1rem;font-weight:400">/ '+money(g.target)+'</span></div>'+progress(p.pct,g.id==='furniture'?'orange':'')+'<div class="progress-label"><span>'+percent(p.pct)+' completado</span><span>Faltan '+money(p.remaining)+'</span></div><dl class="goal-detail"><div><dt>Saldo disponible en el fondo</dt><dd>'+money(p.balance)+'</dd></div><div><dt>Compras pagadas con el fondo</dt><dd>'+money(p.spent)+'</dd></div><div><dt>Meses para aportar</dt><dd>'+p.months+' · hasta '+dateName(g.due)+'</dd></div><div><dt>Aporte mensual necesario</dt><dd>'+(p.required===null?'Plazo vencido':money(p.required))+'</dd></div><div><dt>Plan de referencia este mes</dt><dd>'+money(month().budget.goals[g.id]||0)+'</dd></div><div><dt>Aporte mensual habitual</dt><dd>'+money(g.monthly)+'</dd></div></dl><div class="actions">'+button(cashMode()?'Mover dinero a esta meta':'Agregar aporte','contribute','soft','plus','data-fund="goal:'+g.id+'"')+button('Editar','edit-goal','secondary sm','edit','data-id="'+g.id+'"')+button('Eliminar','delete-goal','secondary sm','trash','data-id="'+g.id+'"')+'</div>'+(g.id==='furniture'&&p.remaining===0?'<div class="section-space">'+button('Redirigir aporte a equipar el hogar','redirect-goal','soft sm')+'</div>':'')+'</article>';}).join('')+'</div>'+(state.goals.length===0?'<section class="card">'+empty('Una nueva meta empieza aquí','Define un monto, una fecha y un aporte mensual.','new-goal','Crear meta')+'</section>':'')+'<section class="card section-space"><div class="card-head"><div><h2>Equipar nuestro hogar</h2><p>Diciembre 2026 y enero 2027 · distribución sugerida, editable</p></div></div><form id="equipment-form"><div class="table-scroll"><table class="equipment-table"><thead><tr><th>Lo que queremos para casa</th><th>Diciembre</th><th>Enero</th></tr></thead><tbody>'+state.equipment.map(e=>'<tr><td>'+escapeHtml(e.name)+'</td><td><input aria-label="'+escapeHtml(e.name)+' diciembre" type="number" step="0.01" min="0" max="1000000000" name="dec_'+e.id+'" value="'+amountInput(e.dec)+'" required></td><td><input aria-label="'+escapeHtml(e.name)+' enero" type="number" step="0.01" min="0" max="1000000000" name="jan_'+e.id+'" value="'+amountInput(e.jan)+'" required></td></tr>').join('')+'</tbody><tfoot><tr><td><strong>Total sugerido</strong></td><td id="equipment-dec">'+money(sum(state.equipment.map(e=>e.dec)))+'</td><td id="equipment-jan">'+money(sum(state.equipment.map(e=>e.jan)))+'</td></tr></tfoot></table></div><p class="field-note">Esta lista distribuye las compras deseadas. El aporte al fondo se cambia en Presupuesto; las compras reales se registran como gastos desde el fondo de la meta.</p><div class="form-error" role="alert"></div><div class="actions section-space"><button class="btn" type="submit">Guardar distribución</button>'+button('Registrar compra con un fondo','fund-expense','secondary','cart')+'</div></form></section>';}
 function groceryStatus(spent,budget){const pct=budget?spent/budget*100:spent?101:0;if(pct>100)return {pct,type:'error',text:'Este mes las compras superaron el presupuesto en '+money(spent-budget)+'.'};if(pct===100)return {pct,type:'error',text:'Has utilizado el 100% del presupuesto de compras.'};if(pct>=90)return {pct,type:'warning',text:'Ya utilizaste al menos el 90%. Quedan '+money(budget-spent)+'.'};if(pct>=75)return {pct,type:'warning',text:'Ya utilizaste al menos el 75%. Planifica las compras que faltan.'};return {pct,type:'success',text:'Todavía tienes '+money(budget-spent)+' para las compras del mes.'};}
@@ -591,11 +618,11 @@ function saveDailyIncome(date,amount,note,existing=null){
  assert(!state.transactions.some(t=>isNeomar(t)&&t.date===date&&t.id!==existing?.id),'Ya registraste esta fecha. Edita su tarjeta para cambiar el importe sin duplicarlo.');
  assert(!existing||date===existing.date,'Para cambiar la fecha, elimina el registro y créalo en el día correcto.');
  const tx={id:existing?.id||uid(),date,type:'income',category:'neomar',amount,note,description:'NEOMAR · '+dailyDateLabel(date),person:'both',account:'home',from:null,to:null,source:'manual'};
- commit(()=>{month(k).incomeMode='daily';if(existing)state.transactions[state.transactions.findIndex(t=>t.id===existing.id)]=tx;else addTransaction(tx);state.selectedMonth=k;simulator=null;},'Ingreso diario guardado. El mes se recalculó.');
+ commit(()=>{month(k).incomeMode='daily';if(existing)replaceTransaction(existing,tx);else addTransaction(tx);state.selectedMonth=k;simulator=null;},'Ingreso diario guardado. El mes se recalculó.');
 }
 function dailyIncomeForm(date=defaultDailyDate()){
  assert(validDate(date)&&month(date.slice(0,7)),'Selecciona una fecha de un mes creado.');ensureOpen(date.slice(0,7));
- const existing=dailyRecords(date.slice(0,7)).find(t=>t.date===date);
+ const found=dailyRecords(date.slice(0,7)).find(t=>t.date===date),existing=found?clone(found):null;
  const amount=existing?amountInput(existing.amount):'';
  const dateField=existing?'<label>Fecha<input type="text" value="'+escapeHtml(dateName(date))+'" readonly><input type="hidden" name="dailyDate" value="'+date+'"></label>':'<label>Fecha<input type="date" name="dailyDate" value="'+date+'" required min="2000-01-01" max="2200-12-31"></label>';
  openModal(existing?'Editar ingreso de NEOMAR':'Ingreso del día · NEOMAR','<div class="field-grid">'+dateField+'<label>Dinero disponible para nosotros<span class="input-money"><span>$</span><input type="number" name="dailyAmount" min="0" max="1000000000" step="0.01" required value="'+amount+'" placeholder="0.00" inputmode="decimal"></span></label><label class="full">Nota (opcional)<input name="dailyNote" maxlength="240" placeholder="Por ejemplo, jornada de sábado" value="'+escapeHtml(existing?.note||'')+'"></label></div><p class="field-note">Ingresa el total que queda para ambos después de cubrir los costos de NEOMAR. Un día sin ingresos puede registrarse con $0.</p><div id="daily-entry-preview" class="section-space" aria-live="polite"></div>','Guardar ingreso',fd=>{
@@ -810,22 +837,23 @@ function migrateCashState(value){
  validateState(s);return s;
 }
 function cashExpenseCategories(f){if(f==='cash:home')return ['groceries','services','other'];if(f==='maintenance')return ['gas','maintenance'];if(f==='cash:iess')return ['iess1','iess2'];if(f.startsWith('cash:personal'))return [f.slice(5)];return [f];}
-function cashTxForm(preset={}){
- ensureOpen();const type=preset.type==='saving'?'transfer':preset.type||'expense';
+function cashTxForm(preset={},existing=null){
+ ensureOpen(existing?existing.date.slice(0,7):state.selectedMonth);const type=preset.type==='saving'?'transfer':preset.type||'expense';
  const initialFund=preset.from&&allFunds().includes(preset.from)?preset.from:cashFundForCategory(preset.category||'groceries');
- const body='<div class="field-grid"><label>Tipo de movimiento<select name="type" id="cash-type">'+selectOptions([['expense','Gasto'],['income','Ingreso extra'],['transfer','Mover dinero entre cajas']],type)+'</select></label><label>Fecha<input type="date" name="date" value="'+inputDate()+'" min="2000-01-01" max="2200-12-31" required></label><label class="full">Descripción<input name="description" value="'+escapeHtml(preset.description||'')+'" maxlength="300" required></label>'+moneyInput('amount','Monto',preset.amount||0,'min="0.01"')+'<label>Persona<select name="person">'+selectOptions([['both','Ambos'],['1',state.settings.names[0]],['2',state.settings.names[1]]],'both')+'</select></label><div id="cash-fields" class="full"></div><div id="cash-warning" class="full" aria-live="polite"></div></div>';
- openModal('Movimiento de caja',body,'Guardar movimiento',fd=>{
+ const body='<div class="field-grid"><label>Tipo de movimiento<select name="type" id="cash-type">'+selectOptions(existing?[[type,typeNames[type]]]:[['expense','Gasto'],['income','Ingreso extra'],['transfer','Mover dinero entre cajas']],type)+'</select></label><label>Fecha<input type="date" name="date" value="'+(existing?existing.date:inputDate())+'" min="2000-01-01" max="2200-12-31" required></label><label class="full">Descripción<input name="description" value="'+escapeHtml(preset.description||'')+'" maxlength="300" required></label>'+moneyInput('amount','Monto',preset.amount||0,'min="0.01"')+'<label>Persona<select name="person">'+selectOptions([['both','Ambos'],['1',state.settings.names[0]],['2',state.settings.names[1]]],preset.person||'both')+'</select></label><div id="cash-fields" class="full"></div><div id="cash-warning" class="full" aria-live="polite"></div></div>';
+ openModal(existing?'Editar movimiento':'Movimiento de caja',body,existing?'Guardar cambios':'Guardar movimiento',fd=>{
   const date=fd.get('date'),k=date.slice(0,7);assert(validDate(date)&&month(k),'Selecciona una fecha de un mes creado.');ensureOpen(k);assert(cashMode(k),'Para un mes anterior a las cajas, cambia el mes en la pantalla principal.');
-  const t={id:uid(),date,type:fd.get('type'),description:fd.get('description').trim(),amount:cents(fd.get('amount'),false),person:fd.get('person'),account:'savings',category:fd.get('category'),from:null,to:null,source:'manual'};
+  const t={id:existing?.id||uid(),date,type:fd.get('type'),description:fd.get('description').trim(),amount:cents(fd.get('amount'),false),person:fd.get('person'),account:'savings',category:fd.get('category'),from:null,to:null,source:'manual'};
   assert(t.description,'Escribe una descripción.');
   if(t.type==='income'){t.account=fd.get('incomeAccount');assert(incomeDestinationOptions(t.person).some(([key])=>key===t.account),'Selecciona un destino válido para esa persona.');assert(['bonus','extra','additional'].includes(t.category),'Elige la categoría del ingreso.');}
   else {t.from=fd.get('from');assert(allFunds().includes(t.from),'Selecciona una caja.');if(t.type==='transfer'){t.to=fd.get('to');t.category=t.to;assert(allFunds().includes(t.to)&&t.to!==t.from,'Elige dos cajas diferentes.');}else{assert(cashExpenseCategories(t.from).includes(t.category),'Selecciona una categoría de esa caja.');if(t.category==='groceries')t.subtype=fd.get('subtype')||'Supermercado';}}
-  commit(()=>addTransaction(t),'Movimiento guardado. Los saldos de las cajas están actualizados.');
+  commit(()=>{if(existing)replaceTransaction(existing,t);else addTransaction(t);simulator=null;},existing?'Movimiento actualizado. Los saldos se recalcularon.':'Movimiento guardado. Los saldos de las cajas están actualizados.');
  });
- const options=()=>{const b=cashBook(state,$('#modal-form [name=date]').value).balances;return allFunds().map(f=>[f,cashLabel(f)+' · '+money(b[f])]);};
- const categories=()=>{const f=$('#cash-from')?.value;if(!f||$('#cash-type').value!=='expense')return;$('#cash-category-wrap').innerHTML='<label>Categoría<select name="category" id="cash-category">'+selectOptions(cashExpenseCategories(f).map(c=>[c,categoryName(c)]),preset.category||cashExpenseCategories(f)[0])+'</select></label>'+(f==='cash:home'?'<label class="section-space">Tipo de compra<select name="subtype">'+selectOptions(['Supermercado','Limpieza','Hogar','Otros'].map(v=>[v,v]),'Supermercado')+'</select></label>':'');};
+ const previewState=()=>({...state,transactions:state.transactions.filter(t=>t.id!==existing?.id)});
+ const options=()=>{const b=cashBook(previewState(),$('#modal-form [name=date]').value).balances;return allFunds().map(f=>[f,cashLabel(f)+' · '+money(b[f])]);};
+ const categories=()=>{const f=$('#cash-from')?.value;if(!f||$('#cash-type').value!=='expense')return;$('#cash-category-wrap').innerHTML='<label>Categoría<select name="category" id="cash-category">'+selectOptions(cashExpenseCategories(f).map(c=>[c,categoryName(c)]),preset.category||cashExpenseCategories(f)[0])+'</select></label>'+(f==='cash:home'?'<label class="section-space">Tipo de compra<select name="subtype">'+selectOptions(['Supermercado','Limpieza','Hogar','Otros'].map(v=>[v,v]),preset.subtype||'Supermercado')+'</select></label>':'');};
  const fields=()=>{const selected=$('#cash-type').value;$('#cash-fields').innerHTML=selected==='income'?'<label>Destino del ingreso<select name="incomeAccount">'+selectOptions(incomeDestinationOptions($('#modal-form [name=person]').value),['1','2'].includes($('#modal-form [name=person]').value)?'personal'+$('#modal-form [name=person]').value:'home')+'</select></label><label class="section-space">Categoría<select name="category">'+selectOptions([['extra','Otro ingreso'],['bonus','Bono'],['additional','Ganancias adicionales']],preset.category||'extra')+'</select></label><p class="field-note">Puedes registrar ingresos cualquier día. Para una jornada de NEOMAR, usa Registrar ingreso y elige NEOMAR.</p>':'<label>'+(selected==='expense'?'Caja que paga':'Caja de origen')+'<select name="from" id="cash-from">'+selectOptions(options(),selected==='transfer'?(preset.from||'cash:unassigned'):initialFund)+'</select></label>'+(selected==='transfer'?'<label class="section-space">Caja de destino<select name="to">'+selectOptions(options(),preset.to||'maintenance')+'</select></label><p class="field-note">Mueve dinero existente. El total de las cajas no aumenta.</p>':'<div class="section-space" id="cash-category-wrap"></div>');categories();$('#cash-from')?.addEventListener('change',()=>{categories();preview();});preview();};
- const preview=()=>{const fd=new FormData($('#modal-form')),f=fd.get('from'),date=fd.get('date');$('.form-error',$('#modal-form')).textContent='';if(fd.get('type')==='income'){let amount=0;try{amount=cents(fd.get('amount'));}catch{}$('#cash-warning').innerHTML=notice(incomeDestinationNote(fd.get('incomeAccount'),amount),'success');return;}if(!f||!validDate(date)){$('#cash-warning').innerHTML='';return;}const balance=cashBook(state,date).balances[f]||0;let amount=0;try{amount=cents(fd.get('amount'));}catch{}$('#cash-warning').innerHTML=notice('Disponible en '+escapeHtml(cashLabel(f))+' al '+dateName(date)+': <strong>'+money(balance)+'</strong>.'+(amount>balance?' Faltan '+money(amount-balance)+'. Puedes mover dinero desde otra caja.':''),amount>balance?'warning':'success');};
+ const preview=()=>{const fd=new FormData($('#modal-form')),f=fd.get('from'),date=fd.get('date');$('.form-error',$('#modal-form')).textContent='';if(fd.get('type')==='income'){let amount=0;try{amount=cents(fd.get('amount'));}catch{}$('#cash-warning').innerHTML=notice(incomeDestinationNote(fd.get('incomeAccount'),amount),'success');return;}if(!f||!validDate(date)){$('#cash-warning').innerHTML='';return;}const balance=cashBook(previewState(),date).balances[f]||0;let amount=0;try{amount=cents(fd.get('amount'));}catch{}$('#cash-warning').innerHTML=notice('Disponible en '+escapeHtml(cashLabel(f))+' al '+dateName(date)+': <strong>'+money(balance)+'</strong>.'+(amount>balance?' Faltan '+money(amount-balance)+'. Puedes mover dinero desde otra caja.':''),amount>balance?'warning':'success');};
  $('#cash-type').addEventListener('change',fields);$('#modal-form [name=person]').addEventListener('change',()=>{if($('#cash-type').value==='income'){const person=$('#modal-form [name=person]').value;$('#modal-form [name=incomeAccount]').innerHTML=selectOptions(incomeDestinationOptions(person),['1','2'].includes(person)?'personal'+person:'home');preview();}});$('#modal-form').addEventListener('input',preview);$('#modal-form').addEventListener('change',preview);fields();
 }
 function cashCloseDialog(){ensureOpen();const c=cashSummary();openModal('Cerrar '+monthName(state.selectedMonth),notice('Los ingresos ya financiaron las cajas. Cerrar conserva los saldos y el historial; no agrega aportes ni gastos.')+'<div class="section-space">'+detail('Saldo que pasa al siguiente mes',money(c.total))+detail('Gastos registrados este mes',money(c.spentTotal))+'</div>','Cerrar mes',()=>commit(()=>closeMonth(state.selectedMonth,false),'Mes cerrado. El dinero restante sigue en sus cajas.'));}
@@ -856,10 +884,10 @@ function incomeDestinationNote(account,amount=0){
  return account==='home'?'Este ingreso se repartirá entre las cajas del hogar: primero IESS y luego los porcentajes que configuraste.':
   (amount?money(amount):'El monto completo')+' se sumará a la caja personal de '+escapeHtml(state.settings.names[Number(account.slice(-1))-1])+'. Podrás gastarlo desde esa caja o moverlo a otra.';
 }
-function incomeForm(preset={}){
+function incomeForm(preset={},existing=null){
  const person=preset.person||'',account=preset.account||(['1','2'].includes(person)?'personal'+person:'home');
- const body='<div class="field-grid"><label class="full">Origen del ingreso<select name="origin" id="income-origin">'+selectOptions([['other','Ingreso individual u otro ingreso'],['neomar','NEOMAR · ingreso de una jornada']],'other')+'</select></label><label>Fecha<input type="date" name="date" value="'+escapeHtml(preset.date||inputDate())+'" min="2000-01-01" max="2200-12-31" required></label>'+moneyInput('amount','Monto recibido',preset.amount||0,'inputmode="decimal"')+'<div class="full field-grid" id="income-other-fields"><label>¿Quién recibió el dinero?<select name="person" id="income-person" required>'+selectOptions([['','Selecciona una persona'],['1',state.settings.names[0]],['2',state.settings.names[1]],['both','Ambos']],person)+'</select></label><label>Destino del dinero<select name="account" id="income-account">'+selectOptions(incomeDestinationOptions(person),account)+'</select></label><label>Categoría<select name="category">'+selectOptions([['extra','Otro ingreso'],['bonus','Bono'],['additional','Ganancias adicionales']],preset.category||'extra')+'</select></label><label class="full">Descripción<input name="description" maxlength="300" placeholder="Por ejemplo: devolución de deuda o trabajo extra" value="'+escapeHtml(preset.description||'')+'" required></label></div><label class="full" id="income-neomar-note" hidden>Nota de la jornada (opcional)<input name="note" maxlength="240" placeholder="Por ejemplo: ventas del día" disabled></label></div><p class="field-note" id="income-help">Puedes registrar varios ingresos en la misma fecha, cualquier día de la semana.</p><div class="section-space" id="income-preview" aria-live="polite"></div>';
- openModal('Registrar ingreso',body,'Guardar ingreso',fd=>{
+ const body='<div class="field-grid"><label class="full">Origen del ingreso<select name="origin" id="income-origin">'+selectOptions(existing?[['other','Ingreso individual u otro ingreso']]:[['other','Ingreso individual u otro ingreso'],['neomar','NEOMAR · ingreso de una jornada']],'other')+'</select></label><label>Fecha<input type="date" name="date" value="'+escapeHtml(preset.date||inputDate())+'" min="2000-01-01" max="2200-12-31" required></label>'+moneyInput('amount','Monto recibido',preset.amount||0,'inputmode="decimal"')+'<div class="full field-grid" id="income-other-fields"><label>¿Quién recibió el dinero?<select name="person" id="income-person" required>'+selectOptions([['','Selecciona una persona'],['1',state.settings.names[0]],['2',state.settings.names[1]],['both','Ambos']],person)+'</select></label><label>Destino del dinero<select name="account" id="income-account">'+selectOptions(incomeDestinationOptions(person),account)+'</select></label><label>Categoría<select name="category">'+selectOptions([['extra','Otro ingreso'],['bonus','Bono'],['additional','Ganancias adicionales']],preset.category||'extra')+'</select></label><label class="full">Descripción<input name="description" maxlength="300" placeholder="Por ejemplo: devolución de deuda o trabajo extra" value="'+escapeHtml(preset.description||'')+'" required></label></div><label class="full" id="income-neomar-note" hidden>Nota de la jornada (opcional)<input name="note" maxlength="240" placeholder="Por ejemplo: ventas del día" disabled></label></div><p class="field-note" id="income-help">Puedes registrar varios ingresos en la misma fecha, cualquier día de la semana.</p><div class="section-space" id="income-preview" aria-live="polite"></div>';
+ openModal(existing?'Editar ingreso':'Registrar ingreso',body,existing?'Guardar cambios':'Guardar ingreso',fd=>{
   const date=fd.get('date'),k=date.slice(0,7),neomar=fd.get('origin')==='neomar',amount=cents(fd.get('amount'),neomar);
   assert(validDate(date)&&month(k),'Selecciona una fecha de un mes creado. Puedes crear otro desde Mes a mes.');ensureOpen(k);
   if(neomar){saveDailyIncome(date,amount,String(fd.get('note')||'').trim());return;}
@@ -868,8 +896,8 @@ function incomeForm(preset={}){
   assert(incomeDestinationOptions(person).some(([key])=>key===account),'Selecciona una caja de destino válida para esa persona.');
   assert(account==='home'||cashMode(k),'Los ingresos directos a cajas personales se pueden registrar desde '+monthName(state.cashStartMonth)+'.');
   assert(['extra','bonus','additional'].includes(category),'Selecciona una categoría de ingreso.');assert(description,'Escribe una descripción del ingreso.');
-  const t={id:uid(),date,type:'income',amount,category,description,person,account,from:null,to:null,source:'manual'};
-  commit(()=>{addTransaction(t);state.selectedMonth=k;simulator=null;},account==='home'?'Ingreso guardado y repartido entre las cajas del hogar.':'Ingreso guardado en la caja personal de '+personName(person)+'.');
+  const t={id:existing?.id||uid(),date,type:'income',amount,category,description,person,account,from:null,to:null,source:'manual'};
+  commit(()=>{if(existing)replaceTransaction(existing,t);else{addTransaction(t);state.selectedMonth=k;}simulator=null;},existing?'Ingreso actualizado.':account==='home'?'Ingreso guardado y repartido entre las cajas del hogar.':'Ingreso guardado en la caja personal de '+personName(person)+'.');
  });
  const form=$('#modal-form');
  const preview=()=>{
@@ -887,6 +915,59 @@ function incomeForm(preset={}){
  form.elements.person.addEventListener('change',()=>{const person=form.elements.person.value;form.elements.account.innerHTML=selectOptions(incomeDestinationOptions(person),['1','2'].includes(person)?'personal'+person:'home');preview();});
  form.elements.origin.addEventListener('change',changeOrigin);form.addEventListener('input',preview);form.addEventListener('change',preview);changeOrigin();
 }
+
+/* Mobile navigation stays in document flow; only its painted position changes.
+ * No finance state, storage, scroll position, or desktop layout is modified. */
+(()=>{
+ const header=document.getElementById('topbar');if(!header)return;
+ const mobile=window.matchMedia('(max-width: 900px)'),sidebar=document.getElementById('sidebar');
+ const y=()=>Math.max(0,Math.min(window.scrollY,Math.max(0,document.documentElement.scrollHeight-window.innerHeight)));
+ let lastY=y(),direction=0,distance=0,frame=0,keyboard=true,width=window.innerWidth;
+ const show=()=>header.classList.remove('mobile-header-hidden');
+ const reset=(reveal=false)=>{lastY=y();direction=0;distance=0;if(reveal)show();};
+ const menuState=()=>{
+  const button=header.querySelector('[data-action=menu]');
+  if(button){button.setAttribute('aria-controls','sidebar');button.setAttribute('aria-expanded',String(Boolean(sidebar?.classList.contains('open'))));}
+ };
+ const gated=()=>document.body.classList.contains('cloud-gated')||document.body.classList.contains('session-hidden');
+ const pinned=()=>{
+  const active=document.activeElement;
+  return sidebar?.classList.contains('open')||document.querySelector('dialog[open]')||
+   (header.contains(active)&&(keyboard||active.matches('select')||active.matches(':focus-visible')));
+ };
+ const editing=()=>document.activeElement?.matches('input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=button]):not([type=submit]),textarea,select,[contenteditable]:not([contenteditable=false])');
+ const update=()=>{
+  frame=0;
+  if(!mobile.matches||gated()||pinned()){reset(true);return;}
+  const current=y(),delta=current-lastY;lastY=current;
+  if(current<=Math.max(16,header.offsetHeight)){reset(true);return;}
+  // Native pickers and on-screen keyboards can move the viewport themselves.
+  if(editing()){reset();return;}
+  if(!delta)return;
+  const nextDirection=Math.sign(delta);
+  if(nextDirection!==direction){direction=nextDirection;distance=0;}
+  distance+=Math.abs(delta);
+  if(distance<8)return;
+  header.classList.toggle('mobile-header-hidden',direction>0);distance=0;
+ };
+ window.addEventListener('scroll',()=>{if(!frame)frame=requestAnimationFrame(update);},{passive:true});
+ document.addEventListener('focusin',event=>reset(header.contains(event.target)));
+ document.addEventListener('focusout',()=>queueMicrotask(()=>reset()));
+ document.addEventListener('keydown',()=>{keyboard=true;if(header.contains(document.activeElement))reset(true);},{capture:true});
+ document.addEventListener('pointerdown',()=>{keyboard=false;},{capture:true,passive:true});
+ window.addEventListener('resize',()=>{const changed=width!==window.innerWidth;width=window.innerWidth;reset(changed);},{passive:true});
+ window.visualViewport?.addEventListener('resize',()=>reset(),{passive:true});
+ mobile.addEventListener('change',()=>reset(true));
+ window.addEventListener('pageshow',()=>reset(true));
+ // Renders replace the toolbar's children, including on navigation/month changes.
+ new MutationObserver(()=>{menuState();reset(true);}).observe(header,{childList:true});
+ if(sidebar)new MutationObserver(()=>{menuState();reset(true);}).observe(sidebar,{attributes:true,attributeFilter:['class']});
+ new MutationObserver(()=>reset(true)).observe(document.body,{attributes:true,attributeFilter:['class']});
+ // The idle warning is inserted later, so observe dialog changes at document level.
+ new MutationObserver(records=>{if(records.some(r=>r.target.tagName==='DIALOG'))reset(true);})
+  .observe(document.body,{subtree:true,attributes:true,attributeFilter:['open']});
+ menuState();reset(true);
+})();
 
 /* Inactivity is measured by wall time, never by token refresh or sync traffic.
  * The marker is shared by tabs in this browser; each device has its own session. */
@@ -1215,28 +1296,33 @@ function openModal(title,body,submitLabel,onSubmit,options={}){
 }
 function closeModal(){const d=$('#dialog');d.close();modalSubmit=null;modalReturnFocus?.isConnected&&modalReturnFocus.focus();}
 function confirmModal(title,text,action,label='Confirmar',danger=false){openModal(title,'<p>'+text+'</p>',label,()=>action(),{danger});}
-function txForm(preset={}){if(cashMode())return cashTxForm(preset);
- ensureOpen();const type=preset.type||'expense';
- const body='<div class="field-grid"><label>Tipo de movimiento<select name="type" id="tx-type">'+selectOptions(Object.entries(typeNames),type)+'</select></label><label>Fecha<input type="date" name="date" required value="'+inputDate()+'" min="2000-01-01" max="2200-12-31"></label><label class="full">Descripción<input name="description" maxlength="300" placeholder="Por ejemplo, compra quincenal" required value="'+escapeHtml(preset.description||'')+'"></label>'+moneyInput('amount','Monto',preset.amount||0,'min="0.01"')+'<label>Persona<select name="person">'+selectOptions([['both','Ambos'],['1',state.settings.names[0]],['2',state.settings.names[1]]],'both')+'</select></label><div class="full" id="tx-fields"></div><div class="full" id="tx-warning"></div></div>';
- openModal('Nuevo movimiento',body,'Guardar movimiento',(fd)=>{
+function txForm(preset={},existing=null){if(!existing&&cashMode())return cashTxForm(preset);
+ ensureOpen(existing?existing.date.slice(0,7):state.selectedMonth);const type=preset.type||'expense';
+ const body='<div class="field-grid"><label>Tipo de movimiento<select name="type" id="tx-type">'+selectOptions(existing?[[type,typeNames[type]]]:Object.entries(typeNames),type)+'</select></label><label>Fecha<input type="date" name="date" required value="'+(existing?existing.date:inputDate())+'" min="2000-01-01" max="2200-12-31"></label><label class="full">Descripción<input name="description" maxlength="300" placeholder="Por ejemplo, compra quincenal" required value="'+escapeHtml(preset.description||'')+'"></label>'+moneyInput('amount','Monto',preset.amount||0,'min="0.01"')+'<label>Persona<select name="person">'+selectOptions([['both','Ambos'],['1',state.settings.names[0]],['2',state.settings.names[1]]],preset.person||'both')+'</select></label><div class="full" id="tx-fields"></div><div class="full" id="tx-warning"></div></div>';
+ openModal(existing?'Editar movimiento':'Nuevo movimiento',body,existing?'Guardar cambios':'Guardar movimiento',(fd)=>{
  const date=fd.get('date');assert(validDate(date),'Selecciona una fecha válida.');const k=date.slice(0,7);assert(state.months[k],'Crea primero '+monthName(k)+' en Mes a mes.');ensureOpen(k);
- const tx={id:uid(),date,type:fd.get('type'),description:fd.get('description').trim(),amount:cents(fd.get('amount'),false),person:fd.get('person'),account:'home',category:'other',from:null,to:null,source:'manual'};
+ const tx={id:existing?.id||uid(),date,type:fd.get('type'),description:fd.get('description').trim(),amount:cents(fd.get('amount'),false),person:fd.get('person'),account:'home',category:'other',from:null,to:null,source:'manual'};
  assert(tx.description,'Escribe una descripción.');
  if(tx.type==='income'){tx.category=fd.get('category');}
  if(tx.type==='saving'){tx.to=fd.get('to');tx.category=tx.to;tx.account='savings';assert(allFunds().includes(tx.to),'Selecciona un fondo.');}
  if(tx.type==='transfer'){tx.from=fd.get('from');tx.to=fd.get('to');tx.category=tx.to;tx.account='savings';assert(allFunds().includes(tx.from)&&allFunds().includes(tx.to)&&tx.from!==tx.to,'Elige dos fondos diferentes.');}
  if(tx.type==='expense'){tx.account=fd.get('account');if(tx.account==='motorcycle-fund'){tx.account='savings';tx.from='maintenance';tx.category='maintenance';}else if(tx.account==='savings'){tx.from=fd.get('from');tx.category=tx.from;assert(allFunds().includes(tx.from),'Selecciona el fondo del gasto.');}else if(tx.account.startsWith('personal'))tx.category=tx.account;else tx.category=fd.get('category');if(tx.category==='groceries')tx.subtype=fd.get('subtype')||'Supermercado';}
- commit(()=>addTransaction(tx),'Movimiento guardado.');
+ commit(()=>{if(existing)replaceTransaction(existing,tx);else addTransaction(tx);simulator=null;},existing?'Movimiento actualizado.':'Movimiento guardado.');
  });
+ if(existing)$('#modal-form').dataset.editId=existing.id;
  updateTxFields(type,preset);
  $('#tx-type').addEventListener('change',e=>updateTxFields(e.target.value));
  $('#modal-form').addEventListener('input',()=>{$('.form-error',$('#modal-form')).textContent='';updateTxWarning();});
 }
-function fundSelect(name,label,selected='',includeBalance=false){const b=balances(),funds=allFunds().filter(f=>cashMode()||!f.startsWith('cash:'));return '<label>'+label+'<select name="'+name+'">'+selectOptions(funds.map(f=>[f,fundName(f)+(includeBalance?' · '+money(b[f]):'')]),selected||funds[0])+'</select></label>';}
+function fundSelect(name,label,selected='',includeBalance=false){
+ const form=$('#modal-form'),existing=state.transactions.find(t=>t.id===form?.dataset.editId),date=form?.elements.date?.value||inputDate(),s=existing?{...state,transactions:state.transactions.filter(t=>t.id!==existing.id)}:state;
+ const k=existing?existing.date.slice(0,7):state.selectedMonth,funds=allFunds().filter(f=>(cashMode(k)&&existing?.type!=='saving')||!f.startsWith('cash:'));
+ return '<label>'+label+'<select name="'+name+'">'+selectOptions(funds.map(f=>[f,fundName(f)+(includeBalance?' · '+money(fundBalanceOnDate(f,date,s)):'')]),selected||funds[0])+'</select></label>';
+}
 function updateTxFields(type,preset={}){
  const el=$('#tx-fields');let body='';const selectedAccount=preset.account==='savings'&&preset.from==='maintenance'?'motorcycle-fund':preset.account||'home';
  if(type==='income')body='<label>Categoría<select name="category">'+selectOptions([['bonus','Bono'],['additional','Ganancias adicionales'],['extra','Ingreso extraordinario']],preset.category||'extra')+'</select></label><p class="field-note">Se suma al ingreso real del mes. Los montos de NEOMAR se registran en Ingresos NEOMAR; no vuelvas a ingresarlos aquí.</p>';
- if(type==='saving')body=fundSelect('to','Fondo de destino',preset.to)+'<p class="field-note">Este aporte sale del ingreso del hogar y utiliza la reserva de ese fondo. Solo la parte que supera lo planificado reduce el disponible adicionalmente.</p>';
+ if(type==='saving')body=fundSelect('to','Fondo de destino',preset.to)+(preset.date&&cashMode(preset.date.slice(0,7))?'<p class="field-note">Este aporte anterior ya está incluido en el reparto de las cajas. Editarlo cambia su reserva, sin sumar dinero nuevo.</p>':'<p class="field-note">Este aporte sale del ingreso del hogar y utiliza la reserva de ese fondo. Solo la parte que supera lo planificado reduce el disponible adicionalmente.</p>');
  if(type==='transfer')body='<div class="field-grid">'+fundSelect('from','Desde',preset.from||'rent',true)+fundSelect('to','Hacia',preset.to||'emergency')+'</div><p class="field-note">Mueve dinero existente entre fondos. No es un ingreso ni un gasto nuevo.</p>';
  if(type==='expense')body='<label>Cuenta de pago<select name="account" id="tx-account">'+selectOptions([['home','Cuenta conjunta del hogar'],['motorcycle-fund','Fondo de la moto · mantenimiento'],['savings','Pagar con otro fondo'],['personal1','Personal · '+state.settings.names[0]],['personal2','Personal · '+state.settings.names[1]]],selectedAccount)+'</select></label><p class="field-note">Elige de dónde sale el dinero. La categoría indica para qué lo gastaste.</p><div id="expense-fields" style="margin-top:16px"></div>';
  el.innerHTML=body;
@@ -1249,7 +1335,7 @@ function updateExpenseFields(account,preset={}){
  else if(account==='savings')el.innerHTML=fundSelect('from','Fondo que paga esta compra',preset.from||'rent',true)+'<p class="field-note">El gasto se descuenta del fondo. No se vuelve a cargar al disponible mensual.</p>';
  else if(account.startsWith('personal'))el.innerHTML=notice('El dinero personal puede utilizarse libremente. Registrar estos gastos es opcional.');
  else{
-  el.innerHTML='<div class="field-grid"><label>Categoría<select name="category" id="tx-category">'+selectOptions(['groceries','services','iess1','iess2','gas','maintenance','other'].map(c=>[c,categoryName(c)]),preset.category||'groceries')+'</select></label><label id="subtype-label">Tipo de compra<select name="subtype">'+selectOptions(['Supermercado','Limpieza','Hogar','Otros'].map(x=>[x,x]),'Supermercado')+'</select></label></div><p class="field-note" id="maintenance-help" hidden>Este gasto se cuenta en Moto aunque pagues desde la cuenta conjunta. No reduce el saldo del fondo de mantenimiento.</p>';
+  el.innerHTML='<div class="field-grid"><label>Categoría<select name="category" id="tx-category">'+selectOptions(['groceries','services','iess1','iess2','gas','maintenance','other'].map(c=>[c,categoryName(c)]),preset.category||'groceries')+'</select></label><label id="subtype-label">Tipo de compra<select name="subtype">'+selectOptions(['Supermercado','Limpieza','Hogar','Otros'].map(x=>[x,x]),preset.subtype||'Supermercado')+'</select></label></div><p class="field-note" id="maintenance-help" hidden>Este gasto se cuenta en Moto aunque pagues desde la cuenta conjunta. No reduce el saldo del fondo de mantenimiento.</p>';
   const toggle=()=>{const grocery=$('#tx-category').value==='groceries';$('#subtype-label').hidden=!grocery;$('#tx-category').closest('label').classList.toggle('full',!grocery);$('#maintenance-help').hidden=$('#tx-category').value!=='maintenance';};$('#tx-category').addEventListener('change',toggle);toggle();
  }
 }
@@ -1258,7 +1344,7 @@ function updateTxWarning(){
  const form=$('#modal-form');if(!form||!$('#tx-warning'))return;const fd=new FormData(form);let a=0;try{a=cents(fd.get('amount')||0);}catch{}const account=fd.get('account');let message='';
  if(fd.get('type')==='expense'&&['savings','motorcycle-fund'].includes(account)){
   const f=account==='motorcycle-fund'?'maintenance':fd.get('from'),date=fd.get('date');
-  if(allFunds().includes(f)&&validDate(date)){const balance=fundBalanceOnDate(f,date);message=notice('Saldo del fondo al '+dateName(date)+': <strong>'+money(balance)+'</strong>.'+(a>balance?' Faltan '+money(a-balance)+'. Registra primero un aporte al fondo o elige la cuenta conjunta del hogar para un pago directo.':''),a>balance?'warning':'');}
+  if(allFunds().includes(f)&&validDate(date)){const balance=fundBalanceOnDate(f,date,{...state,transactions:state.transactions.filter(t=>t.id!==form.dataset.editId)});message=notice('Saldo del fondo al '+dateName(date)+': <strong>'+money(balance)+'</strong>.'+(a>balance?' Faltan '+money(a-balance)+'. Registra primero un aporte al fondo o elige la cuenta conjunta del hogar para un pago directo.':''),a>balance?'warning':'');}
  }
  if(fd.get('type')==='expense'&&!String(account).startsWith('personal')&&a>state.settings.limit)message+='<div class="section-space">'+notice('Las compras con dinero conjunto superiores a '+money(state.settings.limit)+' deberían conversarse antes.','warning','heart')+'</div>';
  $('#tx-warning').innerHTML=message;
@@ -1275,6 +1361,14 @@ function budgetFromForm(form){const fd=new FormData(form),m=clone(month());if(m.
 function activateStablePlan(){ensureOpen();const a=stableAmounts(),m=month();const fixed=sum(['services','iess1','iess2','gas','maintenance'].map(k=>m.budget[k]));const grocery=Math.max(0,a.household-fixed);const over=Math.max(0,fixed-a.household);openModal('Un presupuesto para la siguiente etapa',stableDonut()+'<div class="section-space">'+notice('Para reservar el 40% al hogar, el supermercado pasará de '+money(m.budget.groceries)+' a '+money(grocery)+'. Los aportes a muebles y otras metas se reemplazan por el fondo Metas / inversión.','warning')+'</div>'+(over?'<div class="section-space">'+notice('Las obligaciones fijas ya superan el 40% del ingreso en '+money(over)+'. El plan quedará excedido por ese monto.','error')+'</div>':''),'Aplicar a este mes',()=>commit(()=>{const b=m.budget;b.groceries=grocery;b.emergency=a.emergency;b.rent=a.rent;b.investment=a.investment;b.personal1=Math.floor(a.personal/2);b.personal2=a.personal-b.personal1;b.goals={};m.stable=true;m.redirected=null;},'Plan estable aplicado a '+monthName(state.selectedMonth)+'.'));}
 function newMonthForm(){const next=shiftMonth(Object.keys(state.months).sort().at(-1),1);openModal('Planear un nuevo mes','<div class="field-grid"><label>Nuevo mes<input type="month" name="month" required min="2000-01" max="2200-12" value="'+next+'"></label><label>Usar como base<select name="source">'+selectOptions([['','Presupuesto inicial'],...Object.keys(state.months).sort().map(k=>[k,monthName(k)])],state.selectedMonth)+'</select></label></div><p class="field-note">Se copian los importes y las categorías esenciales. Los movimientos y los saldos no se duplican.</p>','Crear mes',fd=>{const key=fd.get('month');assert(validMonth(key),'Selecciona un mes válido.');assert(!state.months[key],'Ese mes ya existe.');commit(()=>{state.months[key]=newMonth(key,fd.get('source')?month(fd.get('source')):null);for(const g of state.goals){if(key<g.start||key>g.due.slice(0,7)||goalProgress(g).remaining===0)state.months[key].budget.goals[g.id]=0;}state.selectedMonth=key;simulator=null;},'Nuevo mes creado.');});}
 function copyPrevious(){ensureOpen();const previous=shiftMonth(state.selectedMonth,-1);assert(state.months[previous],'No existe el mes anterior. Puedes crearlo en Mes a mes.');confirmModal('Copiar el presupuesto anterior','Se reemplazarán los importes de '+monthName(state.selectedMonth)+' con los de '+monthName(previous)+'. Los movimientos del mes se conservarán.',()=>commit(()=>{const m=month();const source=month(previous);m.income=clone(source.income);m.extra=source.extra;m.budget=clone(source.budget);m.essentials=clone(source.essentials);m.stable=source.stable;m.redirected=null;if(source.actualPercentages)m.actualPercentages=clone(source.actualPercentages);else delete m.actualPercentages;},'Presupuesto copiado.'),'Copiar presupuesto');}
+function editTransaction(id){
+ const current=state.transactions.find(t=>t.id===id);assert(current,'No se encontró el movimiento.');ensureOpen(current.date.slice(0,7));assert(current.source==='manual','Reabre el mes para cambiar un movimiento automático.');
+ const existing=clone(current);
+ if(isNeomar(existing))return dailyIncomeForm(existing.date);
+ if(existing.type==='income')return incomeForm(existing,existing);
+ if(cashMode(existing.date.slice(0,7))&&existing.type!=='saving')return cashTxForm(existing,existing);
+ return txForm(existing,existing);
+}
 function deleteTransaction(id){const t=state.transactions.find(t=>t.id===id);assert(t,'No se encontró el movimiento.');ensureOpen(t.date.slice(0,7));assert(t.source!=='close','Reabre el mes para deshacer las reservas del cierre.');confirmModal('Eliminar movimiento','¿Eliminar “'+escapeHtml(t.description)+'” por '+money(t.amount)+'? Los saldos se recalcularán.',()=>commit(()=>{state.transactions=state.transactions.filter(x=>x.id!==id);},'Movimiento eliminado.'),'Eliminar',true);}
 function deleteGoal(id){const g=goal(id);assert(g,'No se encontró la meta.');const fund='goal:'+id;assert(!state.transactions.some(t=>t.to===fund||t.from===fund),'Esta meta tiene movimientos vinculados. Conserva la meta para mantener el historial; puedes poner su aporte mensual en cero.');assert(!Object.values(state.months).some(m=>m.status==='closed'&&m.budget.goals[id]),'La meta forma parte de un mes cerrado y debe conservarse en el historial.');assert(!g.initial,'Esta meta tiene un saldo inicial. Edita o transfiere el saldo antes de eliminarla.');confirmModal('Eliminar meta','Se eliminará “'+escapeHtml(g.name)+'” y sus aportes planificados en meses abiertos.',()=>commit(()=>{state.goals=state.goals.filter(x=>x.id!==id);for(const m of Object.values(state.months))delete m.budget.goals[id];},'Meta eliminada.'),'Eliminar meta',true);}
 function redirectCurrent(){ensureOpen();assert(goal('equipment'),'Crea primero la meta Equipar nuestro hogar.');const amount=month().budget.goals.furniture||0;confirmModal('Redirigir el aporte mensual','Se moverán '+money(amount)+' del aporte planificado para muebles a Equipar nuestro hogar en este mes. Los saldos ahorrados se conservan.',()=>commit(()=>{month().budget.goals.furniture=0;month().budget.goals.equipment=(month().budget.goals.equipment||0)+amount;},'Aporte redirigido.'),'Redirigir aporte');}
@@ -1306,6 +1400,7 @@ const actions={
  'new-goal':()=>goalForm(),
  'edit-goal':el=>goalForm(el.dataset.id),
  'delete-goal':el=>deleteGoal(el.dataset.id),
+ 'edit-transaction':el=>editTransaction(el.dataset.id),
  'delete-transaction':el=>deleteTransaction(el.dataset.id),
  'redirect-goal':redirectCurrent,
  'view-goals':()=>navigate('goals'),
