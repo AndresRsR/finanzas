@@ -1,0 +1,3 @@
+# Keep Supabase's JWT check plus the private server-to-server dispatch secret.
+[functions.finance-push]
+verify_jwt = true

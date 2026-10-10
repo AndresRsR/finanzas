@@ -142,6 +142,10 @@ Las mejoras móviles van incorporadas en el `index.html` compilado. No hace falt
 
 ## Si algo no funciona
 
+Para activar avisos en los celulares incluso con FINANCE cerrada, consulta
+[NOTIFICACIONES.md](NOTIFICACIONES.md). Requiere desplegar el servidor de avisos
+y activar el permiso en **Configuración** desde cada dispositivo.
+
 - **No aparece la conexión:** comprueba el `config.js` publicado y que `vendor/` esté junto al HTML. Recarga después de terminar la publicación.
 - **No permite iniciar sesión:** comprueba correo, contraseña, proyecto y que el usuario esté confirmado en Authentication. La contraseña de la cuenta no es la contraseña de la base de datos.
 - **Error de funciones o permisos:** vuelve a ejecutar completo el `supabase/schema.sql` actualizado en el mismo proyecto indicado en `config.js`. Comprueba que termine sin errores; no borres las tablas.
