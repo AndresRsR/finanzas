@@ -17,7 +17,18 @@ export function payloadFor(row) {
  const kind=['created','updated','deleted','batch'].includes(row.kind)?row.kind:'batch';
  const txType=['income','expense','saving','transfer'].includes(row.tx_type)?row.tx_type:null;
  const count=Number.isSafeInteger(row.count)&&row.count>0?row.count:1;
- return JSON.stringify({eventId,kind,txType,count});
+ const payload={eventId,kind,txType,count},d=row.details;
+ const label=value=>typeof value==='string'?Array.from(value.replace(/[\p{Cc}\p{Cf}]/gu,' ').replace(/\s+/g,' ').trim()).slice(0,80).join('').trim():'';
+ // Details are an immutable server snapshot, not the current balance or a client message.
+ if(count===1&&kind!=='batch'&&txType&&d&&typeof d==='object'&&!Array.isArray(d)&&
+   Number.isSafeInteger(d.amountCents)&&d.amountCents>=0&&d.amountCents<=100000000000&&
+   ['es','us'].includes(d.format)&&label(d.accountLabel)){
+  const details={amountCents:d.amountCents,accountLabel:label(d.accountLabel),format:d.format};
+  if(txType==='transfer'){
+   if(label(d.fromLabel)&&label(d.toLabel)){details.fromLabel=label(d.fromLabel);details.toLabel=label(d.toLabel);payload.details=details;}
+  }else payload.details=details;
+ }
+ return JSON.stringify(payload);
 }
 export async function runBatch({rpc,send}) {
  const rows=await rpc('finance_push_claim',{p_limit:20});

@@ -1305,7 +1305,7 @@ const pushNotifications=(()=>{
     permission==='denied'?'El navegador bloqueó las notificaciones. Cambia el permiso de FINANCE en los ajustes del navegador para activarlas.':
     ui.known?'Desactivadas para tu cuenta en este dispositivo.':'Comprueba y activa las notificaciones cuando quieras.'));
   const action=ui.enabled?'disable':'enable',disabled=Boolean(unavailable||!ui.owner||ui.busy||activation||ui.checking||(permission==='denied'&&!ui.enabled));
-  return '<h2>Notificaciones en este dispositivo</h2><p class="muted small" style="margin-top:10px">Recibe avisos de cambios en los movimientos, incluso con FINANCE cerrada. Los avisos no muestran importes ni descripciones.</p>'+ 
+  return '<h2>Notificaciones en este dispositivo</h2><p class="muted small" style="margin-top:10px">Recibe avisos con el tipo de movimiento, la caja y el monto, incluso con FINANCE cerrada.</p>'+ 
    '<p class="field-note section-space" role="status" aria-live="polite">'+escape(status)+'</p><div class="actions section-space"><button type="button" class="btn secondary" data-push="'+action+'" '+(disabled?'disabled':'')+'>'+(ui.busy||activation?'Espera…':ui.enabled?'Desactivar en este dispositivo':'Activar en este dispositivo')+'</button></div>'+
    '<p class="field-note">El cierre automático por inactividad conserva estos avisos. Cerrar sesión manualmente los desactiva en este dispositivo.</p>';
  }

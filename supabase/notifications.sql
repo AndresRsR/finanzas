@@ -37,6 +37,8 @@ create table if not exists finance_private.push_events (
   created_at timestamptz not null default clock_timestamp(),
   unique (household_id, revision)
 );
+-- Old events intentionally keep NULL: no backfill or historical notification.
+alter table finance_private.push_events add column if not exists details jsonb;
 create table if not exists finance_private.push_deliveries (
   id uuid primary key default gen_random_uuid(),
   event_id uuid not null references finance_private.push_events(id) on delete cascade,
@@ -213,8 +215,8 @@ end;
 $$;
 
 -- Only the fields needed by the notification diff are inspected here. The app
--- remains responsible for its complete financial validation. No amounts,
--- descriptions, names, or transaction JSON are ever copied into the outbox.
+-- remains responsible for its complete financial validation. Details below are
+-- an allowlisted snapshot, never a copy of the full transaction or household.
 create or replace function finance_private.validate_push_transactions(p_transactions jsonb)
 returns void language plpgsql set search_path = '' as $$
 begin
@@ -233,6 +235,94 @@ begin
       group by t.value ->> 'id' having pg_catalog.count(*) > 1) then
     raise exception using errcode = '22023', message = 'Hay movimientos inválidos o con identificadores repetidos.';
   end if;
+end;
+$$;
+
+create or replace function finance_private.push_safe_label(p_label text, p_fallback text default 'Caja')
+returns text language sql immutable set search_path = '' as $$
+  select pg_catalog.left(coalesce(nullif(pg_catalog.btrim(pg_catalog.regexp_replace(
+    pg_catalog.regexp_replace(coalesce(p_label, ''), '[[:cntrl:]]', ' ', 'g'),
+    U&'[\007F-\009F\200B-\200F\202A-\202E\2060-\206F\FEFF]', '', 'g')), ''), p_fallback), 80);
+$$;
+
+create or replace function finance_private.push_fund_label(p_fund text, p_state jsonb)
+returns text language plpgsql immutable set search_path = '' as $$
+declare v_label text;
+begin
+  if p_fund in ('cash:personal1','cash:personal2','personal1','personal2') then
+    if pg_catalog.jsonb_typeof(p_state #> array['settings','names',case when pg_catalog.right(p_fund,1) = '1' then '0' else '1' end]) = 'string' then
+      v_label := p_state #>> array['settings','names',case when pg_catalog.right(p_fund,1) = '1' then '0' else '1' end];
+    end if;
+    return finance_private.push_safe_label(v_label, 'Integrante ' || pg_catalog.right(p_fund,1));
+  elsif pg_catalog.left(p_fund,5) = 'goal:' then
+    if pg_catalog.jsonb_typeof(p_state -> 'goals') = 'array' then
+      select g.value ->> 'name' into v_label from pg_catalog.jsonb_array_elements(p_state -> 'goals') g(value)
+        where g.value ->> 'id' = pg_catalog.substr(p_fund,6)
+          and pg_catalog.jsonb_typeof(g.value -> 'name') = 'string' limit 1;
+    end if;
+    return finance_private.push_safe_label(v_label);
+  end if;
+  return case p_fund
+    when 'maintenance' then 'Moto' when 'cash:home' then 'Hogar'
+    when 'cash:iess' then 'IESS' when 'cash:saving' then 'Ahorro · por repartir'
+    when 'cash:goals' then 'Metas · por repartir' when 'cash:unassigned' then 'Sin asignar'
+    when 'rent' then 'Renta que no pagamos' when 'emergency' then 'Fondo de emergencia'
+    when 'investment' then 'Metas / inversión' else 'Caja' end;
+end;
+$$;
+
+create or replace function finance_private.push_movement_details(p_tx jsonb, p_state jsonb)
+returns jsonb language plpgsql immutable set search_path = '' as $$
+declare
+  v_amount numeric; v_cash boolean; v_account text; v_fund text;
+  v_label text; v_from text; v_to text; v_format text; v_result jsonb;
+begin
+  if pg_catalog.jsonb_typeof(p_tx) is distinct from 'object'
+    or pg_catalog.jsonb_typeof(p_tx -> 'amount') is distinct from 'number' then return null; end if;
+  v_amount := (p_tx ->> 'amount')::numeric;
+  if v_amount < 0 or v_amount > 100000000000 or v_amount <> pg_catalog.trunc(v_amount) then return null; end if;
+  v_cash := coalesce(p_state ->> 'version' = '3'
+    and p_state ->> 'cashStartMonth' ~ '^(20[0-9]{2}|21[0-9]{2}|2200)-(0[1-9]|1[0-2])$'
+    and pg_catalog.left(p_tx ->> 'date',7) >= p_state ->> 'cashStartMonth', false);
+  v_account := p_tx ->> 'account';
+  v_format := case when p_state #>> '{settings,format}' = 'us' then 'us' else 'es' end;
+  case p_tx ->> 'type'
+    when 'income' then
+      if v_account in ('personal1','personal2') then
+        v_label := 'Personal · ' || finance_private.push_fund_label(v_account,p_state);
+      elsif v_account = 'home' then
+        v_label := case when v_cash then 'Cajas del hogar (repartido)' else 'Hogar' end;
+      else v_label := 'Caja'; end if;
+    when 'expense' then
+      if v_cash then
+        v_fund := nullif(p_tx ->> 'from','');
+        if v_fund is null then
+          v_fund := case p_tx ->> 'category'
+            when 'gas' then 'maintenance' when 'maintenance' then 'maintenance'
+            when 'iess1' then 'cash:iess' when 'iess2' then 'cash:iess'
+            when 'personal1' then 'cash:personal1' when 'personal2' then 'cash:personal2'
+            when 'groceries' then 'cash:home' when 'services' then 'cash:home' when 'other' then 'cash:home'
+            else p_tx ->> 'category' end;
+        end if;
+        v_label := finance_private.push_fund_label(v_fund,p_state);
+      elsif v_account = 'home' then v_label := 'Hogar';
+      elsif v_account in ('personal1','personal2') then v_label := 'Personal · ' || finance_private.push_fund_label(v_account,p_state);
+      elsif v_account = 'savings' then v_label := finance_private.push_fund_label(p_tx ->> 'from',p_state);
+      else v_label := 'Caja'; end if;
+    when 'transfer' then
+      v_label := 'Entre cajas';
+      v_from := finance_private.push_fund_label(p_tx ->> 'from',p_state);
+      v_to := finance_private.push_fund_label(p_tx ->> 'to',p_state);
+    when 'saving' then v_label := finance_private.push_fund_label(p_tx ->> 'to',p_state);
+    else return null;
+  end case;
+  v_result := pg_catalog.jsonb_build_object('amountCents',v_amount::bigint,
+    'accountLabel',finance_private.push_safe_label(v_label),'format',v_format);
+  if v_from is not null then v_result := v_result || pg_catalog.jsonb_build_object('fromLabel',v_from,'toLabel',v_to); end if;
+  return v_result;
+exception when others then
+  -- Notification formatting must never prevent an otherwise accepted save.
+  return null;
 end;
 $$;
 
@@ -265,7 +355,7 @@ $$;
 
 create or replace function finance_private.queue_push_changes()
 returns trigger language plpgsql security definer set search_path = '' as $$
-declare v_count integer; v_kind text; v_type text; v_event uuid;
+declare v_count integer; v_kind text; v_type text; v_event uuid; v_tx_id text; v_tx jsonb; v_snapshot jsonb; v_details jsonb;
 begin
   if coalesce(pg_catalog.current_setting('finance.push_notify', true), '') <> 'on'
     or old.state -> 'transactions' = new.state -> 'transactions' then return new; end if;
@@ -279,14 +369,20 @@ begin
       where t.value ->> 'source' = 'manual'
   ), changes as (
     select case when o.id is null then 'created' when n.id is null then 'deleted' else 'updated' end as kind,
-      coalesce(n.value ->> 'type', o.value ->> 'type') as tx_type
+      coalesce(n.value ->> 'type', o.value ->> 'type') as tx_type, coalesce(n.id,o.id) as tx_id
     from old_tx o full join new_tx n on n.id = o.id where o.value is distinct from n.value
-  ) select pg_catalog.count(*)::integer, pg_catalog.min(c.kind), pg_catalog.min(c.tx_type)
-      into v_count, v_kind, v_type from changes c;
+  ) select pg_catalog.count(*)::integer, pg_catalog.min(c.kind), pg_catalog.min(c.tx_type), pg_catalog.min(c.tx_id)
+      into v_count, v_kind, v_type, v_tx_id from changes c;
   if v_count = 0 then return new; end if;
-  insert into finance_private.push_events(household_id, revision, actor_id, kind, tx_type, change_count)
+  if v_count = 1 then
+    v_snapshot := case when v_kind = 'deleted' then old.state else new.state end;
+    select t.value into v_tx from pg_catalog.jsonb_array_elements(v_snapshot -> 'transactions') t(value)
+      where t.value ->> 'id' = v_tx_id;
+    v_details := finance_private.push_movement_details(v_tx,v_snapshot);
+  end if;
+  insert into finance_private.push_events(household_id, revision, actor_id, kind, tx_type, change_count, details)
     values (new.id, new.revision, auth.uid(), case when v_count = 1 then v_kind else 'batch' end,
-      case when v_count = 1 then v_type else null end, v_count) returning id into v_event;
+      case when v_count = 1 then v_type else null end, v_count, v_details) returning id into v_event;
   -- Recipients are the opted-in bindings present now, including the author.
   -- Later opt-ins do not receive previous events.
   insert into finance_private.push_deliveries(event_id, subscription_id, recipient_id)
@@ -352,7 +448,7 @@ begin
     from due where d.id = due.id returning d.*
   ) select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
       'id', d.id, 'lease', d.lease, 'event_id', e.id, 'kind', e.kind, 'tx_type', e.tx_type,
-      'count', e.change_count, 'created_at', e.created_at,
+      'count', e.change_count, 'created_at', e.created_at, 'details', e.details,
       'subscription', pg_catalog.jsonb_build_object('endpoint', s.endpoint,
         'keys', pg_catalog.jsonb_build_object('auth', s.auth_key, 'p256dh', s.p256dh_key))
     ) order by d.next_attempt_at, d.id), '[]'::jsonb) into v_result
@@ -406,6 +502,7 @@ create or replace function public.finance_push_finish(p_id uuid, p_lease uuid, p
 returns jsonb language sql security invoker set search_path = '' as $$ select finance_private.push_finish(p_id, p_lease, p_outcome); $$;
 
 revoke all on function finance_private.valid_push_endpoint(text), finance_private.valid_push_key(text, integer),
+  finance_private.push_safe_label(text,text), finance_private.push_fund_label(text,jsonb), finance_private.push_movement_details(jsonb,jsonb),
   finance_private.configure_push(text, text, text), finance_private.validate_push_transactions(jsonb),
   finance_private.dispatch_push(), finance_private.queue_push_changes(),
   finance_private.save_notifying(uuid, bigint, jsonb, uuid, boolean), finance_private.push_config(),

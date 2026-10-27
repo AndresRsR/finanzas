@@ -6,8 +6,18 @@ En iPhone, abre FINANCE desde el icono añadido a la pantalla de inicio (iOS 16.
 
 Los avisos se generan al guardar, editar o eliminar ingresos, gastos, aportes y transferencias.
 Llegan a los dispositivos activados de ambos integrantes, incluido quien hizo el cambio.
-No muestran importes, nombres ni descripciones. Tocarlos abre Movimientos después de iniciar
+Muestran el tipo de movimiento, el monto y la caja correspondiente, incluido el nombre de
+la caja personal o de la meta. Por ejemplo: “Gasto de $12,50 desde Moto.” Los ingresos
+compartidos indican “Cajas del hogar (repartido)” porque financian varias cajas. En una
+transferencia aparecen la caja de origen y la de destino. Los avisos de edición y eliminación
+indican esa acción y el valor del movimiento; no son nuevos ingresos ni gastos.
+No incluyen la descripción del movimiento. Tocarlos abre Movimientos después de iniciar
 sesión, si corresponde. Un formulario abierto se conserva hasta guardarlo o cerrarlo.
+
+Cada aviso conserva el monto y la cuenta del momento del cambio. Los avisos antiguos o
+los guardados con varios movimientos a la vez pueden conservar el mensaje general.
+Para recibir el nuevo formato, publica también `sw.js` y vuelve a abrir FINANCE en ambos
+celulares con conexión para que actualicen su componente de notificaciones.
 
 El cierre automático por inactividad conserva los avisos. **Cerrar sesión** manualmente
 intenta desactivarlos en ese dispositivo. También puedes desactivarlos en Configuración.
