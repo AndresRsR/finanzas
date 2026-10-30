@@ -301,7 +301,7 @@ begin
             when 'gas' then 'maintenance' when 'maintenance' then 'maintenance'
             when 'iess1' then 'cash:iess' when 'iess2' then 'cash:iess'
             when 'personal1' then 'cash:personal1' when 'personal2' then 'cash:personal2'
-            when 'groceries' then 'cash:home' when 'services' then 'cash:home' when 'other' then 'cash:home'
+            when 'groceries' then 'cash:home' when 'dining' then 'cash:home' when 'services' then 'cash:home' when 'other' then 'cash:home'
             else p_tx ->> 'category' end;
         end if;
         v_label := finance_private.push_fund_label(v_fund,p_state);
